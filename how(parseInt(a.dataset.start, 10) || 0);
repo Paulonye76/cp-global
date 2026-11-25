@@ -1,0 +1,66 @@
+[1mdiff --git a/public/app.js b/public/app.js[m
+[1mindex d3f986a..847f12a 100644[m
+[1m--- a/public/app.js[m
+[1m+++ b/public/app.js[m
+[36m@@ -101,3 +101,61 @@[m
+     if (e.key === 'Enter' && e.target.tagName === 'INPUT' && i < slides.length - 1) { e.preventDefault(); show(i + 1, 1); }[m
+   });[m
+ })();[m
+[32m+[m
+[32m+[m[32m(function () {[m
+[32m+[m[32m  var a = document.querySelector('[data-auth]');[m
+[32m+[m[32m  if (!a) return;[m
+[32m+[m[32m  var slides = [].slice.call(a.querySelectorAll('.as'));[m
+[32m+[m[32m  var form = a.querySelector('.af'), modal = a.querySelector('[data-modal]');[m
+[32m+[m[32m  var i = 0, pending = null;[m
+[32m+[m[32m  var set = function (s) { a.dataset.s = s; };[m
+[32m+[m[32m  function check() {[m
+[32m+[m[32m    var s = slides[i], b = s.querySelector('.nx'), t = s.dataset.v, ok = true;[m
+[32m+[m[32m    if (t === 'email') ok = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.querySelector('input').value.trim());[m
+[32m+[m[32m    else if (t === 'pass') ok = s.querySelector('input').value.length >= 8;[m
+[32m+[m[32m    else if (t === 'any') ok = s.querySelector('input').value.length > 0;[m
+[32m+[m[32m    else if (t === 'user') {[m
+[32m+[m[32m      var n = s.querySelector('[name=full_name]');[m
+[32m+[m[32m      ok = s.querySelector('[name=username]').value.trim().length >= 3 && (!n || n.value.trim().length > 0);[m
+[32m+[m[32m    }[m
+[32m+[m[32m    if (b) b.disabled = !ok;[m
+[32m+[m[32m    return ok;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  function show(n) {[m
+[32m+[m[32m    slides.forEach(function (s, k) { s.classList.toggle('on', k === n); });[m
+[32m+[m[32m    i = n;[m
+[32m+[m[32m    check();[m
+[32m+[m[32m  }[m
+[32m+[m[32m  function go(b) {[m
+[32m+[m[32m    if (!b) return;[m
+[32m+[m[32m    form.querySelectorAll('[name=age13],[name=terms]').forEach(function (h) { h.value = 'on'; });[m
+[32m+[m[32m    if (b.dataset.href) { location.href = b.dataset.href; return; }[m
+[32m+[m[32m    set('email');[m
+[32m+[m[32m    show(0);[m
+[32m+[m[32m  }[m
+[32m+[m[32m  a.addEventListener('click', function (e) {[m
+[32m+[m[32m    var b = e.target.closest('[data-agree]');[m
+[32m+[m[32m    if (b) {[m
+[32m+[m[32m      pending = b;[m
+[32m+[m[32m      if (a.dataset.mode === 'login') go(b); else modal.hidden = false;[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m[32m    if (e.target.closest('[data-cancel]')) { modal.hidden = true; pending = null; return; }[m
+[32m+[m[32m    if (e.target.closest('[data-accept]')) { modal.hidden = true; go(pending); return; }[m
+[32m+[m[32m    if (e.target.closest('[data-aback]')) {[m
+[32m+[m[32m      if (i > 0) show(i - 1);[m
+[32m+[m[32m      else if (a.dataset.mode === 'google') location.href = '/';[m
+[32m+[m[32m      else set('home');[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m[32m    if (e.target.closest('[data-n]') && check()) show(i + 1);[m
+[32m+[m[32m  });[m
+[32m+[m[32m  a.addEventListener('input', check);[m
+[32m+[m[32m  a.addEventListener('keydown', function (e) {[m
+[32m+[m[32m    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && slides[i].querySelector('[data-n]')) {[m
+[32m+[m[32m      e.preventDefault();[m
+[32m+[m[32m      if (check()) show(i + 1);[m
+[32m+[m[32m    }[m
+[32m+[m[32m  });[m
+[32m+[m[32m  show(parseInt(a.dataset.start, 10) || 0);[m
+[32m+[m[32m})();[m
