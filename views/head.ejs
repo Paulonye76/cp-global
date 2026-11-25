@@ -12,13 +12,23 @@
 <meta property="og:type" content="<%= locals.canonical ? 'profile' : 'website' %>">
 <% if (locals.image) { %><meta property="og:image" content="<%= image %>"><% } %>
 <meta name="twitter:card" content="<%= locals.image ? 'summary_large_image' : 'summary' %>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
 <% if (locals.ld) { %><script type="application/ld+json"><%- ld %></script><% } %>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol>
+<symbol id="av" viewBox="0 0 80 80"><rect width="80" height="80" fill="var(--a1,#d9f5e1)"/><circle cx="40" cy="31" r="14" fill="var(--a2,#1d1d1f)"/><path d="M10 80c2-19 15-27 30-27s28 8 30 27z" fill="var(--a2,#1d1d1f)"/></symbol>
+</svg>
 <header class="top">
   <a class="brand" href="/">CP Global</a>
   <nav>
+    <% if (locals.page === 'home') { %><a class="nl" href="#how">How it works</a><a class="nl" href="#features">Features</a><a class="nl" href="#plans">Plans</a><a class="nl" href="#faq">FAQ</a><% } %>
     <% if (user) { %>
       <a href="/dashboard">Dashboard</a>
       <form method="post" action="/logout"><input type="hidden" name="csrf" value="<%= csrf %>"><button class="link">Log out</button></form>
@@ -28,4 +38,4 @@
     <% } %>
   </nav>
 </header>
-<main>
+<main class="<%= locals.page || '' %>">

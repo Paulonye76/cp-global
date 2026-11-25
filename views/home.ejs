@@ -1,20 +1,86 @@
-<%- include('head') %>
+<%- include('head', { page: 'home' }) %>
 <section class="hero">
-  <h1>Search your username. <span class="g">Find yourself first.</span></h1>
-  <p class="lead">One clean page that Google can read. Your face, your name and your story, ready the moment someone looks you up.</p>
-  <form class="claim" action="/register" method="get">
-    <div class="field">
-      <span class="at">@</span>
-      <input name="u" data-check autocomplete="off" autocapitalize="none" placeholder="yourname" maxlength="20" aria-label="Username">
+  <div class="wrap">
+    <div class="copy">
+      <span class="pill"><i class="dot"></i>Free for 3 days. No card needed.</span>
+      <h1>Search your username. <span class="g">Find yourself first.</span></h1>
+      <p class="lead">One clean page that Google can read. Your verified face, your name and your story, ready the moment someone looks you up.</p>
+      <form class="claim" action="/register" method="get">
+        <div class="field"><span class="at">@</span><input name="u" data-check autocomplete="off" autocapitalize="none" placeholder="yourname" maxlength="20" aria-label="Username"></div>
+        <button class="btn">Claim it free</button>
+      </form>
+      <p class="hint" id="uMsg">Pick a handle nobody else can have.</p>
+      <div class="checks"><span><svg class="i"><use href="#i-check"/></svg>Verified photos</span><span><svg class="i"><use href="#i-check"/></svg>You control every detail</span><span><svg class="i"><use href="#i-check"/></svg>QR card included</span></div>
     </div>
-    <button class="btn">Claim it free</button>
-  </form>
-  <p class="hint" id="uMsg">3 days live on Google, on us.</p>
+    <div class="stage" aria-hidden="true">
+      <div class="glow"></div>
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <svg class="av" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg>
+        <h4>Amaka Adeyemi</h4><p>@amaka.ade</p>
+        <span class="vf"><svg class="i"><use href="#i-shield"/></svg>Face verified</span>
+        <div class="tiles"><div><b>Nigeria</b><span>Country</span></div><div><b>28</b><span>Age</span></div></div>
+        <div class="fake">Share my page</div>
+      </div></div>
+      <div class="glass serp"><div class="sbar"><svg class="i"><use href="#i-search"/></svg>amaka.ade</div>
+        <div class="res"><svg class="av" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><div><b>@amaka.ade | Amaka Adeyemi</b><small>cpglobal.com &rsaquo; amaka.ade</small></div></div></div>
+      <div class="glass chip c1"><svg class="i"><use href="#i-shield"/></svg>Face verified</div>
+      <div class="glass chip c2"><svg class="i"><use href="#i-check"/></svg>Username available</div>
+      <div class="glass chip c3"><svg class="i"><use href="#i-search"/></svg>First on Google</div>
+    </div>
+  </div>
 </section>
-<section class="cards">
-  <div class="card"><h3>Your username is your search</h3><p>Nobody else can have it. Search it and your page comes first.</p></div>
-  <div class="card"><h3>A verified face</h3><p>Your photo only reaches Google after it matches you. Real people, real results.</p></div>
-  <div class="card"><h3>You choose what shows</h3><p>Every detail has its own switch. Public or hidden, your call.</p></div>
-  <div class="card"><h3>One link, one scan</h3><p>Share your page with a QR card that opens it instantly.</p></div>
-</section>
+
+<section class="sec" id="how"><div class="wrap">
+  <span class="eyebrow">How it works</span>
+  <h2 class="big">Three steps to being found.</h2>
+  <div class="steps">
+    <div class="step"><div class="num">1</div><h3>Claim your username</h3><p>Pick a handle nobody else can have. We check it live as you type.</p></div>
+    <div class="step"><div class="num">2</div><h3>Verify your face</h3><p>Your photo only reaches Google after it is verified as you.</p></div>
+    <div class="step"><div class="num">3</div><h3>Get found</h3><p>Your page is built for search, with a QR card to share it anywhere.</p></div>
+  </div>
+</div></section>
+
+<section class="sec soft" id="features"><div class="wrap">
+  <span class="eyebrow">Features</span>
+  <h2 class="big">Everything you need. Nothing you do not.</h2>
+  <div class="bento">
+    <div class="b b1"><h3>Your username is your search</h3><p>Two people can share a name. Nobody shares a username, so yours comes up first.</p>
+      <div class="mini"><div class="sbar"><svg class="i"><use href="#i-search"/></svg>amaka.ade</div><div class="res"><svg class="av" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><div><b>@amaka.ade | Amaka Adeyemi</b><small>Nigeria. Verified.</small></div></div></div></div>
+    <div class="b b2"><h3>A verified face</h3><p>Real people only.</p>
+      <div class="ring"><svg class="av" style="--a1:#e8e8ed;--a2:#1d1d1f"><use href="#av"/></svg><span><svg class="i"><use href="#i-check"/></svg></span></div></div>
+    <div class="b b3"><h3>You choose what shows</h3><p>Every detail has a switch.</p>
+      <div class="tg">Name<i class="sw on"></i></div><div class="tg">Country<i class="sw on"></i></div><div class="tg">Age<i class="sw"></i></div></div>
+    <div class="b b4"><h3>One link. One scan.</h3><p>Every page comes with a QR card that opens it instantly. Put it on a card, a flyer or a screen.</p>
+      <svg class="qrs" viewBox="0 0 21 21"><path d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z" fill="#0b0b0c"/><path d="M1.5 1.5h4v4h-4zM15.5 1.5h4v4h-4zM1.5 15.5h4v4h-4z" fill="#fff"/><path d="M2.5 2.5h2v2h-2zM16.5 2.5h2v2h-2zM2.5 16.5h2v2h-2zM9 0h2v2H9zM9 4h3v2H9zM8 8h2v2H8zM12 8h3v2h-3zM16 9h2v3h-2zM9 12h2v2H9zM12 12h2v3h-2zM15 15h3v2h-3zM9 16h3v2H9zM13 18h2v3h-2zM18 18h3v3h-3zM9 19h2v2H9z" fill="#34c759"/></svg></div>
+  </div>
+</div></section>
+
+<section class="sec" id="plans"><div class="wrap">
+  <span class="eyebrow">Plans</span>
+  <h2 class="big">Start free. Grow when you are ready.</h2>
+  <p class="lead2">Every new page is live on Google for 3 days, free. Paid plans are coming soon.</p>
+  <div class="plans">
+    <div class="plan"><h3>Tier 1</h3><small>Identity</small><b class="pr">Free for 3 days</b>
+      <ul><li><svg class="i"><use href="#i-check"/></svg>Verified photo and name</li><li><svg class="i"><use href="#i-check"/></svg>Country, optional age</li><li><svg class="i"><use href="#i-check"/></svg>Public or hidden switches</li><li><svg class="i"><use href="#i-check"/></svg>QR card</li></ul></div>
+    <div class="plan"><h3>Tier 2</h3><small>Short intro</small><b class="pr">Coming soon</b>
+      <ul><li><svg class="i"><use href="#i-check"/></svg>Everything in Tier 1</li><li><svg class="i"><use href="#i-check"/></svg>150-character bio</li><li><svg class="i"><use href="#i-check"/></svg>What you do, in a tag</li></ul></div>
+    <div class="plan hot"><h3>Tier 3</h3><small>Full profile</small><b class="pr">Coming soon</b>
+      <ul><li><svg class="i"><use href="#i-check"/></svg>Everything in Tier 2</li><li><svg class="i"><use href="#i-check"/></svg>1000-character bio</li><li><svg class="i"><use href="#i-check"/></svg>Links, email and contact</li><li><svg class="i"><use href="#i-check"/></svg>Press and media kit</li></ul></div>
+  </div>
+</div></section>
+
+<section class="sec soft" id="faq"><div class="wrap narrow">
+  <span class="eyebrow">FAQ</span>
+  <h2 class="big">Good questions.</h2>
+  <details><summary>Will Google really show my page first?</summary><p>No one can promise that. A unique username has no competition, and your page is built so Google can read it easily, so it is the best possible start.</p></details>
+  <details><summary>What happens after the 3 free days?</summary><p>Your page pauses and comes off Google unless you pick a plan. Your username stays reserved for you.</p></details>
+  <details><summary>Who can see my details?</summary><p>Only what you switch on. Date of birth is never shown, and a photo only goes public after it is verified.</p></details>
+  <details><summary>Can anyone take my username?</summary><p>No. Once you claim it, it is yours.</p></details>
+</div></section>
+
+<section class="sec"><div class="wrap"><div class="cta">
+  <h2 class="big">Your name deserves to be found.</h2>
+  <p>Claim your username in under a minute.</p>
+  <a class="btn" href="/register">Claim it free</a>
+</div></div></section>
 <%- include('foot') %>
