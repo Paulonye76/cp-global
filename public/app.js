@@ -59,3 +59,45 @@
     });
   }
 })();
+
+(function () {
+  var o = document.querySelector('[data-onb]');
+  if (!o) return;
+  var set = function (s) { o.dataset.s = s; };
+  var seen = false;
+  try { seen = sessionStorage.getItem('cpsplash'); } catch (e) {}
+  if (seen) set('welcome');
+  else setTimeout(function () { try { sessionStorage.setItem('cpsplash', '1'); } catch (e) {} set('welcome'); }, 3100);
+
+  var slides = [].slice.call(o.querySelectorAll('.qs'));
+  var bar = o.querySelector('.pbar i');
+  var i = 0;
+  function show(n, dir) {
+    slides.forEach(function (s, k) {
+      s.classList.toggle('on', k === n);
+    });
+    i = n;
+    var s = slides[n], q = s.querySelector('.q');
+    var t = q.dataset.t || (q.dataset.t = q.textContent.trim());
+    var words = t.split(/\s+/);
+    q.innerHTML = words.map(function (w, k) { return '<span style="animation-delay:' + (k * 65) + 'ms">' + w.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>'; }).join(' ');
+    var base = words.length * 65 + 200;
+    [].slice.call(s.querySelector('.ans').children).forEach(function (el, k) { el.style.animationDelay = (base + k * 90) + 'ms'; });
+    bar.style.width = ((n + 1) / slides.length * 100) + '%';
+  }
+  o.querySelector('[data-ready]').addEventListener('click', function () { set('chat'); show(0, 1); });
+  o.querySelector('[data-back]').addEventListener('click', function () { if (i) show(i - 1, -1); else set('welcome'); });
+  o.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-next]');
+    if (t && i < slides.length - 1) show(i + 1, 1);
+  });
+  o.addEventListener('change', function (e) {
+    var s = e.target.closest('.qs');
+    if (!s || i >= slides.length - 1) return;
+    if (e.target.type === 'radio' && s.hasAttribute('data-auto')) setTimeout(function () { show(i + 1, 1); }, 300);
+    if (e.target.hasAttribute('data-photo')) setTimeout(function () { show(i + 1, 1); }, 300);
+  });
+  o.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && i < slides.length - 1) { e.preventDefault(); show(i + 1, 1); }
+  });
+})();

@@ -1,25 +1,55 @@
-<%- include('head', { title: 'Welcome | CP Global', noindex: true, page: 'wiz' }) %>
-<section class="wiz" data-wiz>
-  <div class="wtop"><div class="bar"><i></i></div><span class="stepn"></span></div>
-  <form method="post" action="/welcome" enctype="multipart/form-data">
-    <input type="hidden" name="csrf" value="<%= csrf %>">
-    <div class="slides">
-      <div class="slide"><h1>Welcome, <span class="g"><%= p.full_name.split(' ')[0] %></span>.</h1><p class="lead">Let us build your page. It takes about a minute, and nothing goes public until you say so.</p></div>
-      <div class="slide"><h1>When were you born?</h1><p class="lead">We use it for your age. It is never shown unless you switch it on.</p>
-        <input type="date" name="dob" class="big-in"><label class="check"><input type="checkbox" name="show_age"> Show my age on my page</label></div>
-      <div class="slide"><h1>Where are you based?</h1><p class="lead">Helps people find the right you.</p>
-        <input name="country" class="big-in" maxlength="56" placeholder="Country" value="<%= p.country || '' %>">
-        <input name="city" class="big-in" maxlength="60" placeholder="City"></div>
-      <div class="slide"><h1>What best describes you?</h1><p class="lead">Pick one.</p>
-        <fieldset class="chips"><% CATS.forEach(function (c) { %><label><input type="radio" name="category" value="<%= c %>"><span><%= c %></span></label><% }) %></fieldset></div>
-      <div class="slide"><h1>What brings you here?</h1><p class="lead">So we can build the right things for you.</p>
-        <fieldset class="chips"><% GOALS.forEach(function (c) { %><label><input type="radio" name="goal" value="<%= c %>"><span><%= c %></span></label><% }) %></fieldset></div>
-      <div class="slide"><h1>How did you hear about us?</h1><p class="lead">One tap.</p>
-        <fieldset class="chips"><% SOURCES.forEach(function (c) { %><label><input type="radio" name="source" value="<%= c %>"><span><%= c %></span></label><% }) %></fieldset></div>
-      <div class="slide"><h1>Add your face.</h1><p class="lead">A clear photo of you. It stays off Google until it is verified.</p>
-        <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="big-in"></div>
+<%- include('head', { title: 'Welcome | CP Global', noindex: true }) %>
+<div class="onb" data-onb data-s="splash">
+  <div class="stage s-splash">
+    <div class="ic">cp</div>
+    <div class="wm" aria-label="CP Global"><% 'CP Global'.split('').forEach(function (c, k) { %><span style="--i:<%= k %>"><%= c === ' ' ? '\u00a0' : c %></span><% }) %></div>
+  </div>
+
+  <div class="stage s-welcome">
+    <div class="art">
+      <i class="orb o1"></i><i class="orb o2"></i>
+      <div class="fc f1"><svg class="av" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><div><b>@amaka.ade</b><small>Nigeria</small></div><svg class="i"><use href="#i-shield"/></svg></div>
+      <div class="fc f2"><svg class="av" style="--a1:#e8e8ed;--a2:#1d1d1f"><use href="#av"/></svg><div><b>@tunde</b><small>Creator</small></div><svg class="i"><use href="#i-shield"/></svg></div>
+      <div class="fc f3"><svg class="av" style="--a1:#fde9d9;--a2:#7a3b12"><use href="#av"/></svg><div><b>@ngozi_k</b><small>Artist</small></div><svg class="i"><use href="#i-shield"/></svg></div>
     </div>
-    <div class="wnav"><button type="button" class="btn ghost" data-back>Back</button><button type="button" class="btn" data-next>Continue</button><button class="btn" data-done hidden>Finish</button></div>
-  </form>
-</section>
+    <div class="wl">CP Global</div>
+    <h1>It’s time to be <span class="g">found first.</span></h1>
+    <a class="am" href="/login">I’m already a member</a>
+    <span class="rl">I’m ready</span>
+    <button class="rd" type="button" data-ready aria-label="I’m ready"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </div>
+
+  <div class="stage s-chat">
+    <div class="pbar"><i></i></div>
+    <button class="bk" type="button" data-back aria-label="Back"><svg class="i" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+    <form method="post" action="/welcome" enctype="multipart/form-data" class="qwrap">
+      <input type="hidden" name="csrf" value="<%= csrf %>">
+
+      <div class="qs" data-auto><div class="me">cp</div><h2 class="q">Hi <%= p.full_name.split(' ')[0] %>, let’s get started. Which best describes you?</h2>
+        <div class="ans"><% CATS.forEach(function (c) { %><label><input type="radio" name="category" value="<%= c %>"><span><%= c %></span></label><% }) %></div></div>
+
+      <div class="qs" data-auto><div class="me">cp</div><h2 class="q">What brings you here?</h2>
+        <div class="ans"><% GOALS.forEach(function (c) { %><label><input type="radio" name="goal" value="<%= c %>"><span><%= c %></span></label><% }) %></div></div>
+
+      <div class="qs" data-auto><div class="me">cp</div><h2 class="q">How did you hear about us?</h2>
+        <div class="ans"><% SOURCES.forEach(function (c) { %><label><input type="radio" name="source" value="<%= c %>"><span><%= c %></span></label><% }) %></div></div>
+
+      <div class="qs"><div class="me">cp</div><h2 class="q">When’s your birthday?</h2>
+        <div class="ans"><input class="pin" type="date" name="dob" aria-label="Date of birth"><button type="button" class="pill go" data-next>Continue</button></div></div>
+
+      <div class="qs" data-auto><div class="me">cp</div><h2 class="q">Want your age shown on your page?</h2>
+        <div class="ans"><label><input type="radio" name="show_age" value="on"><span>Yes, show it</span></label><label><input type="radio" name="show_age" value="off"><span>No, keep it private</span></label></div></div>
+
+      <div class="qs"><div class="me">cp</div><h2 class="q">Where are you based?</h2>
+        <div class="ans"><input class="pin" name="country" maxlength="56" placeholder="Country" value="<%= p.country || '' %>"><input class="pin" name="city" maxlength="60" placeholder="City"><button type="button" class="pill go" data-next>Continue</button></div></div>
+
+      <div class="qs"><div class="me">cp</div><h2 class="q">Add a clear photo of your face.</h2>
+        <div class="ans"><label class="pill go">Choose a photo<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" hidden data-photo></label><button type="button" class="pill" data-next>Skip for now</button></div></div>
+
+      <div class="qs"><div class="me">cp</div><h2 class="q">You’re all set, <%= p.full_name.split(' ')[0] %>. Next, let’s make you live on Google.</h2>
+        <div class="ans"><button class="pill go">Take me to my dashboard</button></div></div>
+    </form>
+    <p class="nt">We use this to personalize your page. Your birthday is never shown unless you switch it on.</p>
+  </div>
+</div>
 <%- include('foot') %>
