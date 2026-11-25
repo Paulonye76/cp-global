@@ -1,0 +1,58 @@
+<%- include('head', { title: (mode === 'login' ? 'Log in' : 'Sign up') + ' | CP Global', noindex: true }) %>
+<% var PAL = [['#d9f5e1', '#0b6b2c'], ['#fde9d9', '#7a3b12'], ['#e8e8ed', '#1d1d1f'], ['#dbeafe', '#1e3a8a'], ['#fce7f3', '#9d174d'], ['#fef3c7', '#92400e'], ['#34c759', '#0b0b0c'], ['#0b0b0c', '#34c759']];
+   var NAMES = ['amaka.ade', 'tunde', 'ngozi_k', 'chidi', 'zainab', 'emeka.o', 'fatima', 'ife', 'kemi_a', 'sam.k', 'bola', 'uche'];
+   var action = mode === 'login' ? '/login' : (mode === 'google' ? '/register/google' : '/register'); %>
+<div class="auth" data-auth data-mode="<%= mode %>" data-s="<%= stage %>" data-start="<%= start %>">
+
+  <div class="stage a-home">
+    <div class="collage" aria-hidden="true">
+      <% for (var c = 0; c < 6; c++) { %><div class="col"><% for (var r = 0; r < 7; r++) { var k = (c * 5 + r * 3) % PAL.length; %>
+        <div class="tile" style="--a1:<%= PAL[k][0] %>;--a2:<%= PAL[k][1] %>"><svg class="av"><use href="#av"/></svg><% if ((c + r) % 3 === 0) { %><span>@<%= NAMES[(c * 2 + r) % NAMES.length] %></span><% } %></div>
+      <% } %></div><% } %>
+    </div>
+    <div class="ah"><div class="lg"><i>cp</i><div><b>CP Global</b><small>Search your username. Find yourself first.</small></div></div><a href="/#faq">Need help?</a></div>
+    <div class="ab">
+      <% if (error && stage === 'home') { %><p class="aerr"><%= error %></p><% } %>
+      <button type="button" class="sb" data-agree data-href="/auth/google<%= mode === 'login' ? '?m=login' : '' %>"><svg viewBox="0 0 48 48" width="22" height="22"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.8 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg><span>Continue with Google</span></button>
+      <button type="button" class="sb" data-agree><svg class="i" viewBox="0 0 24 24" width="22" height="22"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3.5 7l8.5 6 8.5-6"/></svg><span>Continue with email</span></button>
+      <p class="alt-l"><% if (mode === 'login') { %>New here? <a href="/register">Start for free</a><% } else { %>Already have an account? <a href="/login">Log in</a><% } %></p>
+      <p class="legal">By continuing you confirm you are 13 or older and agree to the Terms of Service and Privacy Policy.</p>
+    </div>
+  </div>
+
+  <div class="stage a-email">
+    <div class="hero3">
+      <button class="bk" type="button" data-aback aria-label="Back"><svg class="i" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+      <div class="chars"><svg class="av c1" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><svg class="av c2" style="--a1:#fde9d9;--a2:#1d1d1f"><use href="#av"/></svg></div>
+      <span class="gt g1">Face verified</span><span class="gt g2">@you</span>
+    </div>
+    <form method="post" action="<%= action %>" class="af" novalidate>
+      <input type="hidden" name="age13" value="<%= error && mode === 'signup' ? 'on' : '' %>"><input type="hidden" name="terms" value="<%= error && mode === 'signup' ? 'on' : '' %>">
+      <% if (error && stage === 'email') { %><p class="aerr"><%= error %></p><% } %>
+      <% if (mode === 'signup') { %>
+        <div class="as" data-v="email"><h2>Sign up with email</h2><input class="ain" type="email" name="email" placeholder="Please enter your email" autocomplete="email" value="<%= v.email || '' %>"><button type="button" class="nx" data-n disabled>Next</button></div>
+        <div class="as" data-v="pass"><h2>Create a password</h2><input class="ain" type="password" name="password" placeholder="At least 8 characters" autocomplete="new-password"><button type="button" class="nx" data-n disabled>Next</button></div>
+        <div class="as" data-v="user"><h2>Pick your username</h2>
+          <div class="at2"><span>@</span><input class="ain" name="username" data-check maxlength="20" autocomplete="off" autocapitalize="none" placeholder="username" value="<%= v.username || '' %>"></div>
+          <small id="uMsg"></small>
+          <input class="ain" name="full_name" maxlength="60" placeholder="Your full name" autocomplete="name" value="<%= v.full_name || '' %>">
+          <button class="nx" disabled>Create my account</button></div>
+      <% } else if (mode === 'login') { %>
+        <div class="as" data-v="email"><h2>Log in with email</h2><input class="ain" type="email" name="email" placeholder="Please enter your email" autocomplete="email" value="<%= v.email || '' %>"><button type="button" class="nx" data-n disabled>Next</button></div>
+        <div class="as" data-v="any"><h2>Enter your password</h2><input class="ain" type="password" name="password" placeholder="Password" autocomplete="current-password"><button class="nx" disabled>Log in</button></div>
+      <% } else { %>
+        <div class="as" data-v="user"><h2>Pick your username</h2><p class="ac-note">Signed in as <%= email %></p>
+          <div class="at2"><span>@</span><input class="ain" name="username" data-check maxlength="20" autocomplete="off" autocapitalize="none" placeholder="username" value="<%= v.username || '' %>"></div>
+          <small id="uMsg"></small>
+          <button class="nx" disabled>Create my account</button></div>
+      <% } %>
+      <p class="ac-note">By continuing you agree to the Terms of Service and Privacy Policy.</p>
+    </form>
+  </div>
+
+  <div class="modal" data-modal hidden>
+    <div class="mc"><h3>User Agreement</h3><p>You need to read and agree to our Terms of Service and Privacy Policy, and confirm you are 13 or older, before registering.</p>
+      <div class="mb"><button type="button" data-cancel>Cancel</button><button type="button" data-accept>Accept</button></div></div>
+  </div>
+</div>
+<%- include('foot') %>

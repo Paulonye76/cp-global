@@ -22,6 +22,8 @@ const CATS = ['Creator', 'Professional', 'Business owner', 'Student', 'Artist', 
 const GOALS = ['Be found on Google', 'Share my work', 'Build my brand', 'Network', 'Just exploring'];
 const SOURCES = ['TikTok', 'Instagram', 'Friend or family', 'Google', 'Other'];
 const OPEN_TIERS = process.env.OPEN_TIERS === '1';
+const GID = process.env.GOOGLE_CLIENT_ID;
+const GSEC = process.env.GOOGLE_CLIENT_SECRET;
 const pick = (v, list) => list.includes(v) ? v : null;
 function cleanUrl(u) {
   u = String(u || '').trim().slice(0, 200);
@@ -81,6 +83,10 @@ app.use((req, res, next) => {
   next();
 });
 
+function authView(res, o) {
+  res.render('auth', Object.assign({ mode: 'signup', error: null, v: {}, start: 0, stage: 'home', name: '', email: '' }, o));
+}
+
 function requireAuth(req, res, next) {
   if (!req.user) return res.redirect('/login');
   next();
@@ -105,7 +111,7 @@ app.get('/api/username', apiLimit, async (req, res) => {
 
 app.get('/register', (req, res) => {
   if (req.user) return res.redirect('/dashboard');
-  res.render('register', { error: null, v: { username: String(req.query.u || '').toLowerCase().slice(0, 20) } });
+  authView(res, { v: { username: String(req.query.u || '').toLowerCase().slice(0, 20) }, error: req.query.e === 'google' ? 'Google sign-in is not available yet. Use email for now.' : null });
 });
 
 app.post('/register', authLimit, async (req, res) => {
@@ -116,32 +122,32 @@ app.post('/register', authLimit, async (req, res) => {
     full_name: String(b.full_name || '').trim().slice(0, 60),
     country: String(b.country || '').trim().slice(0, 56)
   };
-  const fail = (error) => res.status(400).render('register', { error, v });
+  const fail = (error, start, stage) => res.status(400).render('auth', { mode: 'signup', error, v, start: start || 0, stage: stage || 'email', name: '', email: '' });
   const uerr = usernameError(v.username);
-  if (uerr) return fail(uerr);
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) return fail('Enter a valid email.');
-  if (String(b.password || '').length < 8) return fail('Password needs at least 8 characters.');
-  if (!v.full_name) return fail('Enter your full name.');
-  if (b.age13 !== 'on' || b.terms !== 'on') return fail('Confirm you are 13 or older and accept the terms.');
+  if (uerr) return fail(uerr, 2);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) return fail('Enter a valid email.', 0);
+  if (String(b.password || '').length < 8) return fail('Password needs at least 8 characters.', 1);
+  if (!v.full_name) return fail('Enter your full name.', 2);
+  if (b.age13 !== 'on' || b.terms !== 'on') return fail('Confirm you are 13 or older and accept the terms.', 0, 'home');
   try {
     const hash = await bcrypt.hash(String(b.password), 12);
     const id = store.createAccount({ email: v.email, hash, username: v.username, full_name: v.full_name, country: v.country, trialDays: TRIAL_DAYS });
     startSession(res, id);
     res.redirect('/welcome');
   } catch (e) {
-    if (e.code === 'duplicate') return fail('That username or email is already taken.');
+    if (e.code === 'duplicate') return fail('That username or email is already taken.', 0);
     console.error(e);
     res.status(500).render('message', { title: 'Something went wrong', text: 'Try again in a moment.' });
   }
 });
 
-app.get('/login', (req, res) => req.user ? res.redirect('/dashboard') : res.render('login', { error: null }));
+app.get('/login', (req, res) => req.user ? res.redirect('/dashboard') : authView(res, { mode: 'login', error: req.query.e === 'google' ? 'Google sign-in is not available yet. Use email for now.' : null }));
 
 app.post('/login', authLimit, async (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
   const u = store.userByEmail(email);
   const ok = u && await bcrypt.compare(String(req.body.password || ''), u.password_hash);
-  if (!ok) return res.status(401).render('login', { error: 'Email or password is wrong.' });
+  if (!ok) return res.status(401).render('auth', { mode: 'login', error: 'Email or password is wrong.', v: { email }, start: 1, stage: 'email', name: '', email: '' });
   startSession(res, u.id);
   res.redirect('/dashboard');
 });
@@ -184,6 +190,72 @@ app.post('/dashboard/photo', requireAuth, upload.single('photo'), checkCsrf, asy
   if (!type) return res.redirect('/dashboard?m=Use a JPG, PNG or WebP image under 2 MB');
   store.setPhoto(req.user.id, req.file.buffer, type);
   res.redirect('/dashboard?m=Photo uploaded');
+});
+
+app.get('/auth/google', (req, res) => {
+  const back = req.query.m === 'login' ? '/login' : '/register';
+  if (!GID || !GSEC) return res.redirect(back + '?e=google');
+  const state = crypto.randomBytes(16).toString('hex');
+  res.cookie('gs', state, { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: 6e5 });
+  const q = new URLSearchParams({ client_id: GID, redirect_uri: BASE + '/auth/google/callback', response_type: 'code', scope: 'openid email profile', state, prompt: 'select_account' });
+  res.redirect('https://accounts.google.com/o/oauth2/v2/auth?' + q);
+});
+
+app.get('/auth/google/callback', async (req, res) => {
+  try {
+    if (!GID || !GSEC || !req.query.code || req.query.state !== req.cookies.gs) return res.redirect('/register?e=google');
+    res.clearCookie('gs');
+    const tr = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ code: req.query.code, client_id: GID, client_secret: GSEC, redirect_uri: BASE + '/auth/google/callback', grant_type: 'authorization_code' })
+    });
+    const t = await tr.json();
+    if (!t.access_token) throw new Error('no token');
+    const g = await (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: 'Bearer ' + t.access_token } })).json();
+    if (!g.email || !g.email_verified) throw new Error('email not verified');
+    const email = String(g.email).toLowerCase();
+    const u = store.userByEmail(email);
+    if (u) {
+      if (!u.google) store.setGoogle(u.id, await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10));
+      startSession(res, u.id);
+      return res.redirect('/dashboard');
+    }
+    res.cookie('gp', jwt.sign({ email, name: g.name || '' }, SECRET, { expiresIn: '15m' }), { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: 9e5 });
+    res.redirect('/register/google');
+  } catch (e) {
+    console.error(e);
+    res.redirect('/register?e=google');
+  }
+});
+
+function googlePending(req) {
+  try { return jwt.verify(req.cookies.gp, SECRET); } catch (e) { return null; }
+}
+
+app.get('/register/google', (req, res) => {
+  const g = googlePending(req);
+  if (!g) return res.redirect('/register');
+  authView(res, { mode: 'google', stage: 'email', email: g.email });
+});
+
+app.post('/register/google', authLimit, async (req, res) => {
+  const g = googlePending(req);
+  if (!g) return res.redirect('/register');
+  const username = String(req.body.username || '').trim().toLowerCase();
+  const fail = (error) => res.status(400).render('auth', { mode: 'google', error, v: { username }, start: 0, stage: 'email', name: '', email: g.email });
+  const uerr = usernameError(username);
+  if (uerr) return fail(uerr);
+  try {
+    const hash = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10);
+    const id = store.createAccount({ email: g.email, hash, google: true, username, full_name: (g.name || g.email.split('@')[0]).slice(0, 60), country: '', trialDays: TRIAL_DAYS });
+    res.clearCookie('gp');
+    startSession(res, id);
+    res.redirect('/welcome');
+  } catch (e) {
+    if (e.code === 'duplicate') return fail('That username is already taken.');
+    console.error(e);
+    fail('Something went wrong. Try again.');
+  }
 });
 
 app.get('/welcome', requireAuth, (req, res) => {

@@ -35,7 +35,7 @@ function createAccount(a) {
     throw e;
   }
   const id = ++db.seq;
-  db.users.push({ id, email: a.email, password_hash: a.hash, dob: null, created_at: new Date().toISOString() });
+  db.users.push({ id, email: a.email, password_hash: a.hash, google: !!a.google, dob: null, created_at: new Date().toISOString() });
   db.profiles.push({
     user_id: id, username: a.username, full_name: a.full_name, country: a.country || null,
     show_name: true, show_country: true, show_age: false, show_photo: true,
@@ -50,6 +50,7 @@ function createAccount(a) {
 module.exports = {
   secret,
   createAccount,
+  setGoogle(id, hash) { const u = db.users.find(x => x.id === id); u.password_hash = hash; u.google = true; save(); },
   userByEmail: email => db.users.find(u => u.email === email) || null,
   profileByUsername: u => view(db.profiles.find(p => p.username === u)),
   profileByUserId: id => view(db.profiles.find(p => p.user_id === id)),
