@@ -14,6 +14,7 @@ const SECRET = process.env.JWT_SECRET || store.secret();
 const PROD = process.env.NODE_ENV === 'production';
 const BASE = (process.env.BASE_URL || 'http://localhost:' + PORT).replace(/\/$/, '');
 const TRIAL_DAYS = 3;
+const VERSION = process.env.RENDER_GIT_COMMIT || String(Date.now());
 
 const RESERVED = new Set(['admin', 'support', 'login', 'logout', 'register', 'dashboard', 'api', 'photo', 'qr',
   'sitemap', 'robots', 'about', 'terms', 'privacy', 'pricing', 'help', 'static', 'public', 'cpglobal', 'cp_global']);
@@ -71,6 +72,8 @@ app.use((req, res, next) => {
   res.locals.user = null;
   res.locals.csrf = '';
   res.locals.base = BASE;
+  res.locals.v = VERSION;
+  res.set('Cache-Control', 'no-cache');
   try {
     const t = req.cookies.cp;
     if (t) {
