@@ -3,6 +3,11 @@
   <% if (photoPublic) { %><img class="avatar big" src="/photo/<%= p.username %>" alt="<%= name %>"><% } else { %><div class="avatar big blank" aria-hidden="true"><%= name.replace('@', '').charAt(0).toUpperCase() %></div><% } %>
   <h1><%= name %></h1>
   <p class="handle">@<%= p.username %></p>
+  <% if (p.tier >= 2 && p.category) { %><span class="vf"><%= p.category %></span><% } %>
+  <% if (p.tier >= 2 && p.bio) { %><p class="bio"><%= p.bio %></p><% } %>
+  <% if (p.tier === 3 && p.bio_long) { %><p class="biol"><%= p.bio_long %></p><% } %>
+  <% if (p.tier === 3 && p.links && p.links.length) { %><div class="links"><% p.links.forEach(function (l) { %><a class="btn alt" rel="nofollow ugc noopener" target="_blank" href="<%= l %>"><%= new URL(l).hostname.replace(/^www\./, '') %></a><% }) %></div><% } %>
+  <% if (p.tier === 3 && p.show_contact && (p.public_email || p.contact_address)) { %><div class="contact"><% if (p.public_email) { %><a href="mailto:<%= p.public_email %>"><%= p.public_email %></a><% } %><% if (p.contact_address) { %><span><%= p.contact_address %></span><% } %></div><% } %>
   <ul class="facts">
     <% if (country) { %><li><b><%= country %></b><span>Country</span></li><% } %>
     <% if (age) { %><li><b><%= age %></b><span>Age</span></li><% } %>

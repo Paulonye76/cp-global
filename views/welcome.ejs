@@ -1,0 +1,25 @@
+<%- include('head', { title: 'Welcome | CP Global', noindex: true, page: 'wiz' }) %>
+<section class="wiz" data-wiz>
+  <div class="wtop"><div class="bar"><i></i></div><span class="stepn"></span></div>
+  <form method="post" action="/welcome" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="<%= csrf %>">
+    <div class="slides">
+      <div class="slide"><h1>Welcome, <span class="g"><%= p.full_name.split(' ')[0] %></span>.</h1><p class="lead">Let us build your page. It takes about a minute, and nothing goes public until you say so.</p></div>
+      <div class="slide"><h1>When were you born?</h1><p class="lead">We use it for your age. It is never shown unless you switch it on.</p>
+        <input type="date" name="dob" class="big-in"><label class="check"><input type="checkbox" name="show_age"> Show my age on my page</label></div>
+      <div class="slide"><h1>Where are you based?</h1><p class="lead">Helps people find the right you.</p>
+        <input name="country" class="big-in" maxlength="56" placeholder="Country" value="<%= p.country || '' %>">
+        <input name="city" class="big-in" maxlength="60" placeholder="City"></div>
+      <div class="slide"><h1>What best describes you?</h1><p class="lead">Pick one.</p>
+        <fieldset class="chips"><% CATS.forEach(function (c) { %><label><input type="radio" name="category" value="<%= c %>"><span><%= c %></span></label><% }) %></fieldset></div>
+      <div class="slide"><h1>What brings you here?</h1><p class="lead">So we can build the right things for you.</p>
+        <fieldset class="chips"><% GOALS.forEach(function (c) { %><label><input type="radio" name="goal" value="<%= c %>"><span><%= c %></span></label><% }) %></fieldset></div>
+      <div class="slide"><h1>How did you hear about us?</h1><p class="lead">One tap.</p>
+        <fieldset class="chips"><% SOURCES.forEach(function (c) { %><label><input type="radio" name="source" value="<%= c %>"><span><%= c %></span></label><% }) %></fieldset></div>
+      <div class="slide"><h1>Add your face.</h1><p class="lead">A clear photo of you. It stays off Google until it is verified.</p>
+        <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="big-in"></div>
+    </div>
+    <div class="wnav"><button type="button" class="btn ghost" data-back>Back</button><button type="button" class="btn" data-next>Continue</button><button class="btn" data-done hidden>Finish</button></div>
+  </form>
+</section>
+<%- include('foot') %>

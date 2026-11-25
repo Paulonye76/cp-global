@@ -1,37 +1,48 @@
 <%- include('head', { title: 'Dashboard | CP Global', noindex: true }) %>
-<section class="panel wide">
-  <h1>@<%= p.username %></h1>
+<% var items = [['Full name', !!p.full_name], ['Country', !!p.country], ['Date of birth', !!p.dob], ['What you do', !!p.category], ['Photo', p.has_photo]];
+   var pct = Math.round(items.filter(function (x) { return x[1]; }).length / items.length * 100);
+   var paused = !live && p.trial_used; %>
+<section class="dash">
+  <div class="hello"><h1>Hi, <%= p.full_name.split(' ')[0] %></h1><p>@<%= p.username %></p></div>
   <% if (msg) { %><p class="ok"><%= msg %></p><% } %>
   <% if (error) { %><p class="err"><%= error %></p><% } %>
-  <div class="status <%= live ? 'on' : 'off' %>">
-    <% if (live) { %>Live on Google<% if (daysLeft !== null) { %>. Free trial ends in <%= daysLeft %> day<%= daysLeft === 1 ? '' : 's' %>.<% } %><% } else { %>Paused. Your page is hidden from Google.<% } %>
+  <div class="hero2 <%= live ? 'live' : '' %>">
+    <div class="ringp" style="--p:<%= pct %>"><b><%= pct %>%</b><span>complete</span></div>
+    <div class="h2c">
+      <% if (live) { %>
+        <h2>You are live on Google</h2>
+        <p><%= daysLeft !== null ? 'Free trial ends in ' + daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + '.' : 'Your page is public.' %></p>
+        <a class="btn" href="/<%= p.username %>">View my page</a> <a class="btn alt" href="/publish">Change plan</a>
+      <% } else if (paused) { %>
+        <h2>Your page is paused</h2><p>Choose a plan to go live again.</p>
+        <a class="btn" href="/publish">Choose a plan</a>
+      <% } else { %>
+        <h2>Make your profile live on Google</h2><p>Choose a plan, check your details and publish. Your first 3 days are free.</p>
+        <a class="btn shine" href="/publish">Make it live</a>
+      <% } %>
+    </div>
   </div>
-  <p><a href="/<%= p.username %>">View your page</a></p>
-
-  <form method="post" action="/dashboard" class="form">
-    <input type="hidden" name="csrf" value="<%= csrf %>">
-    <label>Full name<input name="full_name" maxlength="60" required value="<%= p.full_name %>"></label>
-    <label class="check"><input type="checkbox" name="show_name" <%= p.show_name ? 'checked' : '' %>> Show my name on Google</label>
-    <label>Country<input name="country" maxlength="56" value="<%= p.country || '' %>"></label>
-    <label class="check"><input type="checkbox" name="show_country" <%= p.show_country ? 'checked' : '' %>> Show my country on Google</label>
-    <label>Date of birth (never shown)<input type="date" name="dob" value="<%= p.dob ? new Date(p.dob).toISOString().slice(0, 10) : '' %>"></label>
-    <label class="check"><input type="checkbox" name="show_age" <%= p.show_age ? 'checked' : '' %>> Show my age on Google</label>
-    <label class="check"><input type="checkbox" name="show_photo" <%= p.show_photo ? 'checked' : '' %>> Show my photo on Google</label>
-    <button class="btn">Save changes</button>
-  </form>
-
-  <h2>Photo</h2>
-  <% if (p.has_photo) { %>
-    <img class="avatar" src="/photo/<%= p.username %>" alt="Your photo">
-    <p class="hint"><%= p.photo_verified ? 'Face verified.' : 'Waiting for face verification. Your photo stays off Google until it passes.' %></p>
-  <% } %>
-  <form method="post" action="/dashboard/photo" enctype="multipart/form-data" class="form">
-    <label>Upload a clear photo of your face<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label>
-    <input type="hidden" name="csrf" value="<%= csrf %>">
-    <button class="btn alt">Upload photo</button>
-  </form>
-
-  <h2>Your QR card</h2>
-  <img class="qr" src="/qr/<%= p.username %>" alt="QR code for your page">
+  <div class="card2"><h3>Your checklist</h3>
+    <ul class="cl"><% items.forEach(function (x) { %><li class="<%= x[1] ? 'ok1' : '' %>"><svg class="i"><use href="#i-check"/></svg><%= x[0] %></li><% }) %></ul></div>
+  <details class="card2 dd" id="details"><summary>Profile details</summary>
+    <form method="post" action="/dashboard" class="form">
+      <input type="hidden" name="csrf" value="<%= csrf %>">
+      <label>Full name<input name="full_name" maxlength="60" required value="<%= p.full_name %>"></label>
+      <label class="check"><input type="checkbox" name="show_name" <%= p.show_name ? 'checked' : '' %>> Show my name on Google</label>
+      <label>Country<input name="country" maxlength="56" value="<%= p.country || '' %>"></label>
+      <label class="check"><input type="checkbox" name="show_country" <%= p.show_country ? 'checked' : '' %>> Show my country on Google</label>
+      <label>Date of birth (never shown)<input type="date" name="dob" value="<%= p.dob ? new Date(p.dob).toISOString().slice(0, 10) : '' %>"></label>
+      <label class="check"><input type="checkbox" name="show_age" <%= p.show_age ? 'checked' : '' %>> Show my age on Google</label>
+      <label class="check"><input type="checkbox" name="show_photo" <%= p.show_photo ? 'checked' : '' %>> Show my photo on Google</label>
+      <button class="btn">Save changes</button>
+    </form></details>
+  <div class="card2"><h3>Photo</h3>
+    <% if (p.has_photo) { %><img class="avatar" src="/photo/<%= p.username %>" alt="Your photo"><p class="hint"><%= p.photo_verified ? 'Face verified.' : 'Waiting for face verification. It stays off Google until it passes.' %></p><% } %>
+    <form method="post" action="/dashboard/photo" enctype="multipart/form-data" class="form">
+      <input type="hidden" name="csrf" value="<%= csrf %>">
+      <label>Upload a clear photo of your face<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label>
+      <button class="btn alt">Upload photo</button>
+    </form></div>
+  <div class="card2"><h3>Your QR card</h3><img class="qr" src="/qr/<%= p.username %>" alt="QR code for your page"></div>
 </section>
 <%- include('foot') %>

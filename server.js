@@ -18,6 +18,16 @@ const TRIAL_DAYS = 3;
 const RESERVED = new Set(['admin', 'support', 'login', 'logout', 'register', 'dashboard', 'api', 'photo', 'qr',
   'sitemap', 'robots', 'about', 'terms', 'privacy', 'pricing', 'help', 'static', 'public', 'cpglobal', 'cp_global']);
 const USERNAME_RE = /^(?!.*\.\.)[a-z0-9_][a-z0-9._]{1,18}[a-z0-9_]$/;
+const CATS = ['Creator', 'Professional', 'Business owner', 'Student', 'Artist', 'Other'];
+const GOALS = ['Be found on Google', 'Share my work', 'Build my brand', 'Network', 'Just exploring'];
+const SOURCES = ['TikTok', 'Instagram', 'Friend or family', 'Google', 'Other'];
+const OPEN_TIERS = process.env.OPEN_TIERS === '1';
+const pick = (v, list) => list.includes(v) ? v : null;
+function cleanUrl(u) {
+  u = String(u || '').trim().slice(0, 200);
+  if (!u) return null;
+  try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : null; } catch (e) { return null; }
+}
 
 function usernameError(u) {
   if (!USERNAME_RE.test(u)) return 'Use 3 to 20 letters, numbers, dots or underscores.';
@@ -117,7 +127,7 @@ app.post('/register', authLimit, async (req, res) => {
     const hash = await bcrypt.hash(String(b.password), 12);
     const id = store.createAccount({ email: v.email, hash, username: v.username, full_name: v.full_name, country: v.country, trialDays: TRIAL_DAYS });
     startSession(res, id);
-    res.redirect('/dashboard');
+    res.redirect('/welcome');
   } catch (e) {
     if (e.code === 'duplicate') return fail('That username or email is already taken.');
     console.error(e);
@@ -143,6 +153,7 @@ function myProfile(id) { return store.profileByUserId(id); }
 app.get('/dashboard', requireAuth, async (req, res) => {
   const p = myProfile(req.user.id);
   if (!p) { res.clearCookie('cp'); return res.redirect('/login'); }
+  if (!p.onboarded) return res.redirect('/welcome');
   const daysLeft = p.status === 'trial' ? Math.max(0, Math.ceil((new Date(p.trial_ends_at) - Date.now()) / 864e5)) : null;
   res.render('dashboard', { p, live: isLive(p), daysLeft, msg: req.query.m || null, error: null });
 });
@@ -173,6 +184,70 @@ app.post('/dashboard/photo', requireAuth, upload.single('photo'), checkCsrf, asy
   if (!type) return res.redirect('/dashboard?m=Use a JPG, PNG or WebP image under 2 MB');
   store.setPhoto(req.user.id, req.file.buffer, type);
   res.redirect('/dashboard?m=Photo uploaded');
+});
+
+app.get('/welcome', requireAuth, (req, res) => {
+  const p = myProfile(req.user.id);
+  if (!p) return res.redirect('/login');
+  if (p.onboarded) return res.redirect('/dashboard');
+  res.render('welcome', { p, CATS, GOALS, SOURCES });
+});
+
+app.post('/welcome', requireAuth, upload.single('photo'), checkCsrf, (req, res) => {
+  const b = req.body;
+  let dob = String(b.dob || '').trim() || null;
+  if (dob) { const a = ageOf(dob); if (isNaN(new Date(dob)) || a === null || a < 13 || a > 120) dob = null; }
+  store.updateProfile(req.user.id, {
+    country: String(b.country || '').trim().slice(0, 56) || null,
+    city: String(b.city || '').trim().slice(0, 60) || null,
+    show_age: b.show_age === 'on',
+    category: pick(b.category, CATS), goal: pick(b.goal, GOALS), source: pick(b.source, SOURCES),
+    onboarded: true
+  }, dob);
+  const type = req.file && sniffImage(req.file.buffer);
+  if (type) store.setPhoto(req.user.id, req.file.buffer, type);
+  res.redirect('/dashboard');
+});
+
+app.get('/publish', requireAuth, (req, res) => {
+  const p = myProfile(req.user.id);
+  if (!p) return res.redirect('/login');
+  if (!p.onboarded) return res.redirect('/welcome');
+  res.render('publish', { p, live: isLive(p), open: OPEN_TIERS, CATS, msg: req.query.m || null });
+});
+
+app.post('/publish', requireAuth, checkCsrf, (req, res) => {
+  const p = myProfile(req.user.id);
+  const b = req.body;
+  const tier = Math.min(3, Math.max(1, parseInt(b.tier, 10) || 1));
+  const f = {
+    full_name: String(b.full_name || '').trim().slice(0, 60) || p.full_name,
+    country: String(b.country || '').trim().slice(0, 56) || null,
+    category: pick(b.category, CATS) || p.category,
+    show_name: b.show_name === 'on', show_country: b.show_country === 'on',
+    show_photo: b.show_photo === 'on', show_age: b.show_age === 'on'
+  };
+  if (tier >= 2) f.bio = String(b.bio || '').trim().slice(0, 150);
+  if (tier === 3) {
+    f.bio_long = String(b.bio_long || '').trim().slice(0, 1000);
+    f.links = [b.link1, b.link2, b.link3].map(cleanUrl).filter(Boolean);
+    f.public_email = String(b.public_email || '').trim().slice(0, 120) || null;
+    f.contact_address = String(b.contact_address || '').trim().slice(0, 200) || null;
+    f.show_contact = b.show_contact === 'on';
+  }
+  const goBack = (m) => res.redirect('/publish?m=' + encodeURIComponent(m));
+  if (tier > 1 && !OPEN_TIERS) {
+    store.updateProfile(req.user.id, f);
+    return goBack('Saved. Paid plans open soon, so this tier cannot go live yet. Choose Tier 1 to go live free now.');
+  }
+  if (!isLive(p)) {
+    if (p.trial_used) { store.updateProfile(req.user.id, f); return goBack('Your free trial has ended. Plans open soon.'); }
+    f.status = 'trial'; f.trial_used = true;
+    f.trial_ends_at = new Date(Date.now() + TRIAL_DAYS * 864e5).toISOString();
+  }
+  f.tier = tier;
+  store.updateProfile(req.user.id, f);
+  res.redirect('/dashboard?m=' + encodeURIComponent('You are live on Google.'));
 });
 
 app.get('/photo/:username', async (req, res) => {
@@ -217,10 +292,14 @@ app.get('/:username', async (req, res, next) => {
   const ld = { '@context': 'https://schema.org', '@type': 'Person', name, alternateName: '@' + p.username, url: BASE + '/' + p.username };
   if (photoPublic) ld.image = BASE + '/photo/' + p.username;
   if (country) ld.address = { '@type': 'PostalAddress', addressCountry: country };
+  if (p.tier >= 2 && p.bio) ld.description = p.bio;
+  if (p.tier >= 2 && p.category) ld.jobTitle = p.category;
+  if (p.tier === 3 && p.links && p.links.length) ld.sameAs = p.links;
+  if (p.tier === 3 && p.show_contact && p.public_email) ld.email = p.public_email;
   res.render('profile', {
     p, name, country, age, photoPublic,
     title: '@' + p.username + (showName ? ' | ' + p.full_name : '') + ' | CP Global',
-    desc: name + ' on CP Global' + (country ? ', ' + country : '') + '. Find @' + p.username + ' first.',
+    desc: (p.tier >= 2 && p.bio) ? p.bio : name + ' on CP Global' + (country ? ', ' + country : '') + '. Find @' + p.username + ' first.',
     canonical: BASE + '/' + p.username,
     image: photoPublic ? BASE + '/photo/' + p.username : null,
     ld: JSON.stringify(ld).replace(/</g, '\\u003c')

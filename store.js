@@ -39,8 +39,9 @@ function createAccount(a) {
   db.profiles.push({
     user_id: id, username: a.username, full_name: a.full_name, country: a.country || null,
     show_name: true, show_country: true, show_age: false, show_photo: true,
-    photo_type: null, photo_verified: false, tier: 1, status: 'trial',
-    trial_ends_at: new Date(Date.now() + a.trialDays * 864e5).toISOString(), paid_until: null
+    photo_type: null, photo_verified: false, tier: 1, status: 'draft', onboarded: false, trial_used: false, city: null, category: null, goal: null, source: null,
+    bio: '', bio_long: '', links: [], public_email: null, contact_address: null, show_contact: false,
+    trial_ends_at: null, paid_until: null
   });
   save();
   return id;
@@ -55,7 +56,7 @@ module.exports = {
   allProfiles: () => db.profiles.map(view),
   updateProfile(userId, fields, dob) {
     Object.assign(db.profiles.find(p => p.user_id === userId), fields);
-    db.users.find(u => u.id === userId).dob = dob;
+    if (dob !== undefined) db.users.find(u => u.id === userId).dob = dob;
     save();
   },
   setPhoto(userId, buf, type) {
