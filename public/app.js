@@ -101,3 +101,61 @@
     if (e.key === 'Enter' && e.target.tagName === 'INPUT' && i < slides.length - 1) { e.preventDefault(); show(i + 1, 1); }
   });
 })();
+
+(function () {
+  var a = document.querySelector('[data-auth]');
+  if (!a) return;
+  var slides = [].slice.call(a.querySelectorAll('.as'));
+  var form = a.querySelector('.af'), modal = a.querySelector('[data-modal]');
+  var i = 0, pending = null;
+  var set = function (s) { a.dataset.s = s; };
+  function check() {
+    var s = slides[i], b = s.querySelector('.nx'), t = s.dataset.v, ok = true;
+    if (t === 'email') ok = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.querySelector('input').value.trim());
+    else if (t === 'pass') ok = s.querySelector('input').value.length >= 8;
+    else if (t === 'any') ok = s.querySelector('input').value.length > 0;
+    else if (t === 'user') {
+      var n = s.querySelector('[name=full_name]');
+      ok = s.querySelector('[name=username]').value.trim().length >= 3 && (!n || n.value.trim().length > 0);
+    }
+    if (b) b.disabled = !ok;
+    return ok;
+  }
+  function show(n) {
+    slides.forEach(function (s, k) { s.classList.toggle('on', k === n); });
+    i = n;
+    check();
+  }
+  function go(b) {
+    if (!b) return;
+    form.querySelectorAll('[name=age13],[name=terms]').forEach(function (h) { h.value = 'on'; });
+    if (b.dataset.href) { location.href = b.dataset.href; return; }
+    set('email');
+    show(0);
+  }
+  a.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-agree]');
+    if (b) {
+      pending = b;
+      if (a.dataset.mode === 'login') go(b); else modal.hidden = false;
+      return;
+    }
+    if (e.target.closest('[data-cancel]')) { modal.hidden = true; pending = null; return; }
+    if (e.target.closest('[data-accept]')) { modal.hidden = true; go(pending); return; }
+    if (e.target.closest('[data-aback]')) {
+      if (i > 0) show(i - 1);
+      else if (a.dataset.mode === 'google') location.href = '/';
+      else set('home');
+      return;
+    }
+    if (e.target.closest('[data-n]') && check()) show(i + 1);
+  });
+  a.addEventListener('input', check);
+  a.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && slides[i].querySelector('[data-n]')) {
+      e.preventDefault();
+      if (check()) show(i + 1);
+    }
+  });
+  show(parseInt(a.dataset.start, 10) || 0);
+})();
