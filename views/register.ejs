@@ -1,0 +1,21 @@
+<%- include('head', { title: 'Create your page | CP Global' }) %>
+<section class="panel">
+  <h1>Claim your username</h1>
+  <p class="lead">Your page goes live on Google for 3 days, free.</p>
+  <% if (error) { %><p class="err"><%= error %></p><% } %>
+  <form method="post" action="/register" class="form">
+    <label>Username
+      <div class="field"><span class="at">@</span><input name="username" data-check autocomplete="off" autocapitalize="none" maxlength="20" required value="<%= v.username || '' %>"></div>
+      <small id="uMsg"></small>
+    </label>
+    <label>Full name<input name="full_name" maxlength="60" required value="<%= v.full_name || '' %>"></label>
+    <label>Country<input name="country" maxlength="56" value="<%= v.country || '' %>"></label>
+    <label>Email<input type="email" name="email" required value="<%= v.email || '' %>"></label>
+    <label>Password<input type="password" name="password" minlength="8" required></label>
+    <label class="check"><input type="checkbox" name="age13"> I am 13 or older</label>
+    <label class="check"><input type="checkbox" name="terms"> I accept the Terms and Privacy Policy</label>
+    <button class="btn">Create my page</button>
+  </form>
+  <p class="hint">Already have a page? <a href="/login">Log in</a></p>
+</section>
+<%- include('foot') %>

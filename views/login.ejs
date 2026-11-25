@@ -1,0 +1,12 @@
+<%- include('head', { title: 'Log in | CP Global' }) %>
+<section class="panel">
+  <h1>Welcome back</h1>
+  <% if (error) { %><p class="err"><%= error %></p><% } %>
+  <form method="post" action="/login" class="form">
+    <label>Email<input type="email" name="email" required></label>
+    <label>Password<input type="password" name="password" required></label>
+    <button class="btn">Log in</button>
+  </form>
+  <p class="hint">New here? <a href="/register">Claim your username</a></p>
+</section>
+<%- include('foot') %>

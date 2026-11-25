@@ -1,0 +1,37 @@
+<%- include('head', { title: 'Dashboard | CP Global', noindex: true }) %>
+<section class="panel wide">
+  <h1>@<%= p.username %></h1>
+  <% if (msg) { %><p class="ok"><%= msg %></p><% } %>
+  <% if (error) { %><p class="err"><%= error %></p><% } %>
+  <div class="status <%= live ? 'on' : 'off' %>">
+    <% if (live) { %>Live on Google<% if (daysLeft !== null) { %>. Free trial ends in <%= daysLeft %> day<%= daysLeft === 1 ? '' : 's' %>.<% } %><% } else { %>Paused. Your page is hidden from Google.<% } %>
+  </div>
+  <p><a href="/<%= p.username %>">View your page</a></p>
+
+  <form method="post" action="/dashboard" class="form">
+    <input type="hidden" name="csrf" value="<%= csrf %>">
+    <label>Full name<input name="full_name" maxlength="60" required value="<%= p.full_name %>"></label>
+    <label class="check"><input type="checkbox" name="show_name" <%= p.show_name ? 'checked' : '' %>> Show my name on Google</label>
+    <label>Country<input name="country" maxlength="56" value="<%= p.country || '' %>"></label>
+    <label class="check"><input type="checkbox" name="show_country" <%= p.show_country ? 'checked' : '' %>> Show my country on Google</label>
+    <label>Date of birth (never shown)<input type="date" name="dob" value="<%= p.dob ? new Date(p.dob).toISOString().slice(0, 10) : '' %>"></label>
+    <label class="check"><input type="checkbox" name="show_age" <%= p.show_age ? 'checked' : '' %>> Show my age on Google</label>
+    <label class="check"><input type="checkbox" name="show_photo" <%= p.show_photo ? 'checked' : '' %>> Show my photo on Google</label>
+    <button class="btn">Save changes</button>
+  </form>
+
+  <h2>Photo</h2>
+  <% if (p.has_photo) { %>
+    <img class="avatar" src="/photo/<%= p.username %>" alt="Your photo">
+    <p class="hint"><%= p.photo_verified ? 'Face verified.' : 'Waiting for face verification. Your photo stays off Google until it passes.' %></p>
+  <% } %>
+  <form method="post" action="/dashboard/photo" enctype="multipart/form-data" class="form">
+    <label>Upload a clear photo of your face<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label>
+    <input type="hidden" name="csrf" value="<%= csrf %>">
+    <button class="btn alt">Upload photo</button>
+  </form>
+
+  <h2>Your QR card</h2>
+  <img class="qr" src="/qr/<%= p.username %>" alt="QR code for your page">
+</section>
+<%- include('foot') %>

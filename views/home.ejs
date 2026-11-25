@@ -1,0 +1,20 @@
+<%- include('head') %>
+<section class="hero">
+  <h1>Search your username. <span class="g">Find yourself first.</span></h1>
+  <p class="lead">One clean page that Google can read. Your face, your name and your story, ready the moment someone looks you up.</p>
+  <form class="claim" action="/register" method="get">
+    <div class="field">
+      <span class="at">@</span>
+      <input name="u" data-check autocomplete="off" autocapitalize="none" placeholder="yourname" maxlength="20" aria-label="Username">
+    </div>
+    <button class="btn">Claim it free</button>
+  </form>
+  <p class="hint" id="uMsg">3 days live on Google, on us.</p>
+</section>
+<section class="cards">
+  <div class="card"><h3>Your username is your search</h3><p>Nobody else can have it. Search it and your page comes first.</p></div>
+  <div class="card"><h3>A verified face</h3><p>Your photo only reaches Google after it matches you. Real people, real results.</p></div>
+  <div class="card"><h3>You choose what shows</h3><p>Every detail has its own switch. Public or hidden, your call.</p></div>
+  <div class="card"><h3>One link, one scan</h3><p>Share your page with a QR card that opens it instantly.</p></div>
+</section>
+<%- include('foot') %>

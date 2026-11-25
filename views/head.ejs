@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title><%= locals.title || 'CP Global' %></title>
+<meta name="description" content="<%= locals.desc || 'Search your username. Find yourself first.' %>">
+<% if (locals.noindex) { %><meta name="robots" content="noindex"><% } %>
+<% if (locals.canonical) { %><link rel="canonical" href="<%= canonical %>"><% } %>
+<meta property="og:title" content="<%= locals.title || 'CP Global' %>">
+<meta property="og:description" content="<%= locals.desc || 'Search your username. Find yourself first.' %>">
+<meta property="og:type" content="<%= locals.canonical ? 'profile' : 'website' %>">
+<% if (locals.image) { %><meta property="og:image" content="<%= image %>"><% } %>
+<meta name="twitter:card" content="<%= locals.image ? 'summary_large_image' : 'summary' %>">
+<link rel="stylesheet" href="/style.css">
+<% if (locals.ld) { %><script type="application/ld+json"><%- ld %></script><% } %>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">CP Global</a>
+  <nav>
+    <% if (user) { %>
+      <a href="/dashboard">Dashboard</a>
+      <form method="post" action="/logout"><input type="hidden" name="csrf" value="<%= csrf %>"><button class="link">Log out</button></form>
+    <% } else { %>
+      <a href="/login">Log in</a>
+      <a class="btn small" href="/register">Start free</a>
+    <% } %>
+  </nav>
+</header>
+<main>

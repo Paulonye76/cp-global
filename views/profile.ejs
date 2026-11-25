@@ -1,0 +1,13 @@
+<%- include('head') %>
+<section class="profile">
+  <% if (photoPublic) { %><img class="avatar big" src="/photo/<%= p.username %>" alt="<%= name %>"><% } else { %><div class="avatar big blank" aria-hidden="true"><%= name.replace('@', '').charAt(0).toUpperCase() %></div><% } %>
+  <h1><%= name %></h1>
+  <p class="handle">@<%= p.username %></p>
+  <ul class="facts">
+    <% if (country) { %><li><b><%= country %></b><span>Country</span></li><% } %>
+    <% if (age) { %><li><b><%= age %></b><span>Age</span></li><% } %>
+    <% if (photoPublic) { %><li><b>Verified</b><span>Face</span></li><% } %>
+  </ul>
+  <img class="qr" src="/qr/<%= p.username %>" alt="QR code for this page">
+</section>
+<%- include('foot') %>
