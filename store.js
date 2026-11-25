@@ -10,6 +10,9 @@ fs.mkdirSync(PHOTOS, { recursive: true });
 let db = { seq: 0, users: [], profiles: [] };
 if (fs.existsSync(FILE)) db = JSON.parse(fs.readFileSync(FILE, 'utf8'));
 
+let timer;
+function saveSoon() { clearTimeout(timer); timer = setTimeout(save, 2000); }
+
 function save() {
   const tmp = FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(db));
@@ -25,7 +28,7 @@ function secret() {
 function view(p) {
   if (!p) return null;
   const u = db.users.find(x => x.id === p.user_id);
-  return Object.assign({}, p, { dob: u ? u.dob : null, has_photo: !!p.photo_type });
+  return Object.assign({}, p, { dob: u ? u.dob : null, joined: u ? u.created_at : null, has_photo: !!p.photo_type });
 }
 
 function createAccount(a) {
@@ -40,7 +43,7 @@ function createAccount(a) {
     user_id: id, username: a.username, full_name: a.full_name, country: a.country || null,
     show_name: true, show_country: true, show_age: false, show_photo: true,
     photo_type: null, photo_verified: false, tier: 1, status: 'draft', onboarded: false, trial_used: false, city: null, category: null, goal: null, source: null,
-    bio: '', bio_long: '', links: [], public_email: null, contact_address: null, show_contact: false,
+    views: 0, shares: 0, achievements: '', bio: '', bio_long: '', links: [], public_email: null, contact_address: null, show_contact: false,
     trial_ends_at: null, paid_until: null
   });
   save();
@@ -51,6 +54,7 @@ module.exports = {
   secret,
   createAccount,
   setGoogle(id, hash) { const u = db.users.find(x => x.id === id); u.password_hash = hash; u.google = true; save(); },
+  incr(userId, field) { const p = db.profiles.find(x => x.user_id === userId); if (p) { p[field] = (p[field] || 0) + 1; saveSoon(); } },
   userByEmail: email => db.users.find(u => u.email === email) || null,
   profileByUsername: u => view(db.profiles.find(p => p.username === u)),
   profileByUserId: id => view(db.profiles.find(p => p.user_id === id)),

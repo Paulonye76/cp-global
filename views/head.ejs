@@ -23,15 +23,25 @@
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
 <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></symbol>
+<symbol id="i-qr" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h3v3h-3zM20 14v6h-6"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></symbol>
+<symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
 <symbol id="av" viewBox="0 0 80 80"><rect width="80" height="80" fill="var(--a1,#d9f5e1)"/><circle cx="40" cy="31" r="14" fill="var(--a2,#1d1d1f)"/><path d="M10 80c2-19 15-27 30-27s28 8 30 27z" fill="var(--a2,#1d1d1f)"/></symbol>
 </svg>
 <header class="top">
-  <a class="brand" href="/">CP Global</a>
+  <div class="hl"><% if (locals.page !== 'home') { %><button class="hb" type="button" data-hback aria-label="Go back"><svg class="i"><use href="#i-back"/></svg></button><% } %><a class="brand" href="/">CP Global</a></div>
   <nav>
+    <a class="nl" href="/discover">Discover</a>
     <% if (locals.page === 'home') { %><a class="nl" href="#how">How it works</a><a class="nl" href="#features">Features</a><a class="nl" href="#plans">Plans</a><a class="nl" href="#faq">FAQ</a><% } %>
     <% if (user) { %>
       <a href="/dashboard">Dashboard</a>
-      <form method="post" action="/logout"><input type="hidden" name="csrf" value="<%= csrf %>"><button class="link">Log out</button></form>
+      <button class="link" type="button" data-logout>Log out</button>
     <% } else { %>
       <a href="/login">Log in</a>
       <a class="btn small" href="/register">Start free</a>

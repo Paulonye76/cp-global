@@ -23,6 +23,7 @@
     <div class="card2 form t3"><h3>Full profile</h3>
       <label>Long bio (1000 characters)<textarea name="bio_long" maxlength="1000" rows="6"><%= p.bio_long || '' %></textarea></label>
       <% for (var k = 0; k < 3; k++) { %><label>Link <%= k + 1 %><input name="link<%= k + 1 %>" type="url" maxlength="200" placeholder="https://" value="<%= (p.links && p.links[k]) || '' %>"></label><% } %>
+      <label>Achievements (one per line, up to 6)<textarea name="achievements" maxlength="700" rows="4"><%= p.achievements || '' %></textarea></label>
       <label>Public email<input type="email" name="public_email" maxlength="120" value="<%= p.public_email || '' %>"></label>
       <label>Contact address<input name="contact_address" maxlength="200" value="<%= p.contact_address || '' %>"></label>
       <label class="check"><input type="checkbox" name="show_contact" <%= p.show_contact ? 'checked' : '' %>> Show email and address on my page</label>

@@ -159,3 +159,53 @@
   });
   show(parseInt(a.dataset.start, 10) || 0);
 })();
+
+(function () {
+  var back = document.querySelector('[data-hback]');
+  if (back) back.addEventListener('click', function () {
+    if (history.length > 1 && document.referrer.indexOf(location.host) !== -1) history.back(); else location.href = '/';
+  });
+
+  var top = document.querySelector('[data-top]');
+  if (top) {
+    var onScroll = function () { top.classList.toggle('show', window.scrollY > 320); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    top.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  }
+
+  var lo = document.querySelector('[data-lo]');
+  if (lo) {
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('[data-logout]')) { lo.hidden = false; return; }
+      if (e.target.closest('[data-lo-cancel]') || e.target === lo) { lo.hidden = true; return; }
+      if (e.target.closest('[data-lo-ok]')) document.getElementById('logoutForm').submit();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lo.hidden = true; });
+  }
+
+  var det = document.getElementById('details');
+  if (det) {
+    var openDet = function () { if (location.hash === '#details') det.open = true; };
+    window.addEventListener('hashchange', openDet);
+    document.addEventListener('click', function (e) {
+      var l = e.target.closest('a[href="#details"]');
+      if (l) { det.open = true; setTimeout(function () { det.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); e.preventDefault(); }
+    });
+    openDet();
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-share]');
+    if (!b) return;
+    var label = b.querySelector('span');
+    var counted = function () {
+      fetch('/api/share', { method: 'POST', headers: { 'x-csrf': b.dataset.csrf } }).catch(function () {});
+    };
+    if (navigator.share) {
+      navigator.share({ title: b.dataset.title, url: b.dataset.url }).then(counted).catch(function () {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(b.dataset.url).then(function () { counted(); if (label) label.textContent = 'Link copied'; });
+    }
+  });
+})();

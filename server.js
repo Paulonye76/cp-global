@@ -258,6 +258,31 @@ app.post('/register/google', authLimit, async (req, res) => {
   }
 });
 
+app.get('/discover', (req, res) => {
+  const q = String(req.query.q || '').trim().toLowerCase().slice(0, 60);
+  const cat = pick(String(req.query.cat || ''), CATS);
+  const loc = String(req.query.loc || '').trim().toLowerCase().slice(0, 60);
+  let list = store.allProfiles().filter(isLive).map(p => ({
+    username: p.username,
+    name: p.show_name && p.full_name ? p.full_name : null,
+    category: p.tier >= 2 ? p.category : null,
+    place: p.show_country ? [p.city, p.country].filter(Boolean).join(', ') : '',
+    photo: !!(p.photo_verified && p.show_photo && p.has_photo),
+    views: p.views || 0
+  }));
+  if (q) list = list.filter(x => x.username.includes(q) || (x.name && x.name.toLowerCase().includes(q)) || (x.category && x.category.toLowerCase().includes(q)));
+  if (cat) list = list.filter(x => x.category === cat);
+  if (loc) list = list.filter(x => x.place.toLowerCase().includes(loc));
+  list.sort((a, b) => b.views - a.views);
+  res.render('discover', { list: list.slice(0, 24), q: String(req.query.q || '').slice(0, 60), cat: cat || '', loc: String(req.query.loc || '').slice(0, 60), CATS, searching: !!(q || cat || loc) });
+});
+
+app.post('/api/share', requireAuth, (req, res) => {
+  if (req.get('x-csrf') !== req.user.c) return res.sendStatus(403);
+  store.incr(req.user.id, 'shares');
+  res.json({ ok: true });
+});
+
 app.get('/welcome', requireAuth, (req, res) => {
   const p = myProfile(req.user.id);
   if (!p) return res.redirect('/login');
@@ -302,6 +327,7 @@ app.post('/publish', requireAuth, checkCsrf, (req, res) => {
   if (tier >= 2) f.bio = String(b.bio || '').trim().slice(0, 150);
   if (tier === 3) {
     f.bio_long = String(b.bio_long || '').trim().slice(0, 1000);
+    f.achievements = String(b.achievements || '').split('\n').map(x => x.trim().slice(0, 100)).filter(Boolean).slice(0, 6).join('\n');
     f.links = [b.link1, b.link2, b.link3].map(cleanUrl).filter(Boolean);
     f.public_email = String(b.public_email || '').trim().slice(0, 120) || null;
     f.contact_address = String(b.contact_address || '').trim().slice(0, 200) || null;
@@ -341,7 +367,7 @@ app.get('/qr/:username', async (req, res) => {
 });
 
 app.get('/sitemap.xml', async (req, res) => {
-  const urls = [BASE + '/'].concat(store.allProfiles().filter(isLive).map(x => BASE + '/' + x.username));
+  const urls = [BASE + '/', BASE + '/discover'].concat(store.allProfiles().filter(isLive).map(x => BASE + '/' + x.username));
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +
     urls.map(u => '<url><loc>' + u + '</loc></url>').join('') + '</urlset>');
 });
@@ -356,20 +382,25 @@ app.get('/:username', async (req, res, next) => {
   const p = store.profileByUsername(u);
   if (!p) return next();
   if (!isLive(p)) return res.render('message', { title: 'This page is paused', text: '@' + p.username + ' is not live right now.', noindex: true });
+  if (!req.user || req.user.id !== p.user_id) store.incr(p.user_id, 'views');
   const showName = p.show_name && p.full_name;
   const name = showName ? p.full_name : '@' + p.username;
   const photoPublic = p.photo_verified && p.show_photo && p.has_photo;
   const age = p.show_age ? ageOf(p.dob) : null;
   const country = p.show_country ? p.country : null;
+  const ach = p.tier === 3 ? String(p.achievements || '').split('\n').filter(Boolean) : [];
   const ld = { '@context': 'https://schema.org', '@type': 'Person', name, alternateName: '@' + p.username, url: BASE + '/' + p.username };
   if (photoPublic) ld.image = BASE + '/photo/' + p.username;
   if (country) ld.address = { '@type': 'PostalAddress', addressCountry: country };
   if (p.tier >= 2 && p.bio) ld.description = p.bio;
   if (p.tier >= 2 && p.category) ld.jobTitle = p.category;
   if (p.tier === 3 && p.links && p.links.length) ld.sameAs = p.links;
+  if (ach.length) ld.award = ach;
   if (p.tier === 3 && p.show_contact && p.public_email) ld.email = p.public_email;
   res.render('profile', {
-    p, name, country, age, photoPublic,
+    p, name, country, age, photoPublic, ach,
+    place: country ? [p.city, country].filter(Boolean).join(', ') : '',
+    since: p.joined ? new Date(p.joined).getFullYear() : null,
     title: '@' + p.username + (showName ? ' | ' + p.full_name : '') + ' | CP Global',
     desc: (p.tier >= 2 && p.bio) ? p.bio : name + ' on CP Global' + (country ? ', ' + country : '') + '. Find @' + p.username + ' first.',
     canonical: BASE + '/' + p.username,

@@ -2,11 +2,19 @@
 <footer class="fx">
   <div class="wrap fxg">
     <div><a class="brand" href="/">CP Global</a><p>Search your username. Find yourself first.</p></div>
-    <div><b>Product</b><a href="/#how">How it works</a><a href="/#features">Features</a><a href="/#plans">Plans</a><a href="/#faq">FAQ</a></div>
+    <div><b>Product</b><a href="/#how">How it works</a><a href="/#features">Features</a><a href="/#plans">Plans</a><a href="/discover">Discover people</a><a href="/#faq">FAQ</a></div>
     <div><b>Account</b><a href="/register">Claim your username</a><a href="/login">Log in</a></div>
   </div>
   <div class="wrap fxb">CP Global. Real people, verified faces, found first.</div>
 </footer>
+<button class="totop" type="button" data-top aria-label="Back to top"><svg class="i"><use href="#i-up"/></svg></button>
+<% if (user) { %>
+<form id="logoutForm" method="post" action="/logout"><input type="hidden" name="csrf" value="<%= csrf %>"></form>
+<div class="modal lo" data-lo hidden>
+  <div class="mc"><h3>Log out?</h3><p>Are you sure you want to log out of CP Global?</p>
+    <div class="mb"><button type="button" data-lo-cancel>Cancel</button><button type="button" data-lo-ok>Log out</button></div></div>
+</div>
+<% } %>
 <script src="/app.js"></script>
 </body>
 </html>

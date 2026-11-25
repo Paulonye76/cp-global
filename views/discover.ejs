@@ -1,0 +1,31 @@
+<%- include('head', { title: 'Discover people | CP Global', desc: 'Find people on CP Global by name, username, profession or location.', canonical: base + '/discover' }) %>
+<section class="disc">
+  <h1>Discover <span class="g">people.</span></h1>
+  <p class="lead">Search by name, username, profession or location.</p>
+  <form class="dsearch" method="get" action="/discover">
+    <div class="field big"><svg class="i"><use href="#i-search"/></svg><input name="q" value="<%= q %>" placeholder="Name, username or profession" aria-label="Search"></div>
+    <div class="frow">
+      <select name="cat" aria-label="Profession"><option value="">Any profession</option><% CATS.forEach(function (c) { %><option <%= cat === c ? 'selected' : '' %>><%= c %></option><% }) %></select>
+      <input name="loc" value="<%= loc %>" placeholder="City or country" aria-label="Location">
+      <button class="btn">Search</button>
+    </div>
+  </form>
+  <h2 class="dh"><%= searching ? 'Results' : 'Popular profiles' %></h2>
+  <% if (!list.length) { %>
+    <div class="card2 empty"><h3><%= searching ? 'No one matches that yet.' : 'No live profiles yet.' %></h3><p class="hint">Be the first to be found.</p><a class="btn" href="/register">Start for free</a></div>
+  <% } else { %>
+    <div class="pgrid">
+      <% list.forEach(function (x) { %>
+      <a class="pcd" href="/<%= x.username %>">
+        <% if (x.photo) { %><img class="avatar" src="/photo/<%= x.username %>" alt=""><% } else { %><svg class="av pav" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><% } %>
+        <b><%= x.name || '@' + x.username %></b>
+        <small><%= x.name ? '@' + x.username : '' %></small>
+        <% if (x.category) { %><span class="cat"><%= x.category %></span><% } %>
+        <% if (x.place) { %><em><%= x.place %></em><% } %>
+        <i class="vp">View profile</i>
+      </a>
+      <% }) %>
+    </div>
+  <% } %>
+</section>
+<%- include('foot') %>
