@@ -10,6 +10,21 @@
 <button class="totop" type="button" data-top aria-label="Back to top"><svg class="i"><use href="#i-up"/></svg></button>
 <% if (user) { %>
 <form id="logoutForm" method="post" action="/logout"><input type="hidden" name="csrf" value="<%= csrf %>"></form>
+<div class="scrim" data-scrim></div>
+<aside class="drawer" data-drawer aria-hidden="true">
+  <div class="dh2"><b>Menu</b><button class="hb" type="button" data-menu-close aria-label="Close menu"><svg class="i"><use href="#i-close"/></svg></button></div>
+  <nav>
+    <a href="/dashboard"><svg class="i"><use href="#i-eye"/></svg>Overview</a>
+    <a href="/dashboard/profile"><svg class="i"><use href="#i-user"/></svg>My profile</a>
+    <a href="/publish"><svg class="i"><use href="#i-shield"/></svg>Go live</a>
+    <a href="/verify"><svg class="vb2"><use href="#i-seal"/></svg>Verification</a>
+    <a href="/notifications"><svg class="i"><use href="#i-bell"/></svg>Notifications<% if (unread) { %><i class="cnt2"><%= unread %></i><% } %></a>
+    <a href="/discover"><svg class="i"><use href="#i-compass"/></svg>Discover people</a>
+    <a href="/dashboard/qr"><svg class="i"><use href="#i-qr"/></svg>QR code</a>
+    <% if (admin) { %><a href="/admin/verify"><svg class="i"><use href="#i-check"/></svg>Review verifications</a><% } %>
+    <button type="button" data-logout><svg class="i"><use href="#i-out"/></svg>Log out</button>
+  </nav>
+</aside>
 <div class="modal lo" data-lo hidden>
   <div class="mc"><h3>Log out?</h3><p>Are you sure you want to log out of CP Global?</p>
     <div class="mb"><button type="button" data-lo-cancel>Cancel</button><button type="button" data-lo-ok>Log out</button></div></div>

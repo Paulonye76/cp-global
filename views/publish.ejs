@@ -1,35 +1,50 @@
-<%- include('head', { title: 'Go live | CP Global', noindex: true }) %>
+<%- include('head', { title: 'Go live | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
+<% var TIERS = [
+  ['1', 'Tier 1', 'Identity', 'Free for 3 days', ['Photo and name', 'Country and optional age', 'Public or hidden switches', 'QR card']],
+  ['2', 'Tier 2', 'Short intro', open ? 'Free preview' : 'Coming soon', ['Everything in Tier 1', '150-character bio', 'Profession tag']],
+  ['3', 'Tier 3', 'Full profile', open ? 'Free preview' : 'Coming soon', ['Everything in Tier 2', '1000-character bio', 'Achievements and links', 'Email and contact']]
+]; var cur = String(p.tier || 1); %>
 <section class="dash">
   <div class="hello"><h1>Make your profile <span class="g">live</span></h1><p>Pick a plan. Your details are filled in. Check them and publish.</p></div>
   <% if (msg) { %><p class="ok"><%= msg %></p><% } %>
-  <form method="post" action="/publish" class="pf" data-tier="<%= p.tier || 1 %>">
+  <form method="post" action="/publish" class="pf sws" data-tier="<%= cur %>">
     <input type="hidden" name="csrf" value="<%= csrf %>">
     <div class="tcs">
-      <% [['1', 'Tier 1', 'Identity', 'Photo, name, country'], ['2', 'Tier 2', 'Short intro', 'Adds a 150-character bio'], ['3', 'Tier 3', 'Full profile', 'Adds long bio, links, contact']].forEach(function (t) { %>
-      <label class="tc"><input type="radio" name="tier" value="<%= t[0] %>" <%= String(p.tier || 1) === t[0] ? 'checked' : '' %>><span class="tcb"><b><%= t[1] %></b><em><%= t[2] %></em><small><%= t[3] %></small><i><%= t[0] === '1' ? 'Free for 3 days' : (open ? 'Free preview' : 'Coming soon') %></i></span></label>
+      <% TIERS.forEach(function (t) { %>
+      <label class="tc"><input type="radio" name="tier" value="<%= t[0] %>" <%= cur === t[0] ? 'checked' : '' %>>
+        <span class="tcb"><% if (t[0] === '3') { %><span class="rib">Most complete</span><% } %>
+          <span class="tt"><b><%= t[1] %></b><i class="tk"><svg class="i"><use href="#i-check"/></svg></i></span>
+          <em><%= t[2] %></em><strong class="pr"><%= t[3] %></strong>
+          <ul><% t[4].forEach(function (f) { %><li><svg class="i"><use href="#i-check"/></svg><%= f %></li><% }) %></ul>
+        </span></label>
       <% }) %>
     </div>
-    <div class="card2 form"><h3>Your details</h3>
+
+    <div class="card2 form"><div class="sh"><svg class="i"><use href="#i-user"/></svg><div><h3>Your details</h3><p>Who you are on Google.</p></div></div>
       <label>Full name<input name="full_name" maxlength="60" required value="<%= p.full_name %>"></label>
       <label class="check"><input type="checkbox" name="show_name" <%= p.show_name ? 'checked' : '' %>> Show my name on Google</label>
       <label>Country<input name="country" maxlength="56" value="<%= p.country || '' %>"></label>
       <label class="check"><input type="checkbox" name="show_country" <%= p.show_country ? 'checked' : '' %>> Show my country on Google</label>
       <label>What you do<select name="category"><% CATS.forEach(function (c) { %><option <%= p.category === c ? 'selected' : '' %>><%= c %></option><% }) %></select></label>
       <% if (p.dob) { %><label class="check"><input type="checkbox" name="show_age" <%= p.show_age ? 'checked' : '' %>> Show my age on Google</label><% } %>
-      <label class="check"><input type="checkbox" name="show_photo" <%= p.show_photo ? 'checked' : '' %>> Show my photo on Google (<%= p.has_photo ? (p.photo_verified ? 'verified' : 'waiting for verification') : 'none uploaded' %>)</label>
+      <label class="check"><input type="checkbox" name="show_photo" <%= p.show_photo ? 'checked' : '' %>> Show my photo on Google (<%= p.verify_status === 'verified' ? 'verified' : 'needs verification' %>)</label>
     </div>
-    <div class="card2 form t2"><h3>Short intro</h3>
-      <label>Bio (150 characters)<textarea name="bio" maxlength="150" rows="3"><%= p.bio || '' %></textarea></label></div>
-    <div class="card2 form t3"><h3>Full profile</h3>
-      <label>Long bio (1000 characters)<textarea name="bio_long" maxlength="1000" rows="6"><%= p.bio_long || '' %></textarea></label>
-      <% for (var k = 0; k < 3; k++) { %><label>Link <%= k + 1 %><input name="link<%= k + 1 %>" type="url" maxlength="200" placeholder="https://" value="<%= (p.links && p.links[k]) || '' %>"></label><% } %>
+
+    <div class="card2 form t2"><div class="sh"><svg class="i"><use href="#i-edit"/></svg><div><h3>Short intro</h3><p>The line people read first.</p></div></div>
+      <label>Bio<textarea name="bio" maxlength="150" rows="3" placeholder="Who you are in one sentence"><%= p.bio || '' %></textarea></label>
+    </div>
+
+    <div class="card2 form t3"><div class="sh"><svg class="i"><use href="#i-share"/></svg><div><h3>Full profile</h3><p>Your story, links and contact.</p></div></div>
+      <label>Professional biography<textarea name="bio_long" maxlength="1000" rows="6"><%= p.bio_long || '' %></textarea></label>
       <label>Achievements (one per line, up to 6)<textarea name="achievements" maxlength="700" rows="4"><%= p.achievements || '' %></textarea></label>
+      <% for (var k = 0; k < 3; k++) { %><label>Link <%= k + 1 %><input name="link<%= k + 1 %>" type="url" maxlength="200" placeholder="https://" value="<%= (p.links && p.links[k]) || '' %>"></label><% } %>
       <label>Public email<input type="email" name="public_email" maxlength="120" value="<%= p.public_email || '' %>"></label>
       <label>Contact address<input name="contact_address" maxlength="200" value="<%= p.contact_address || '' %>"></label>
       <label class="check"><input type="checkbox" name="show_contact" <%= p.show_contact ? 'checked' : '' %>> Show email and address on my page</label>
     </div>
+
     <% if (!open) { %><p class="hint t2">Paid plans open soon. You can save these details now. Tier 1 can go live free today.</p><% } %>
-    <button class="btn big shine">Publish my profile</button>
+    <div class="pbar2"><div><small>Selected plan</small><b data-tn>Tier <%= cur %></b></div><button class="btn">Publish my profile</button></div>
   </form>
 </section>
 <%- include('foot') %>

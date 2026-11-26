@@ -1,0 +1,28 @@
+<%- include('head', { title: 'My profile | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
+<section class="dash">
+  <div class="hello"><h1>My profile</h1><p>Your details and what shows on Google.</p></div>
+  <% if (msg) { %><p class="ok"><%= msg %></p><% } %>
+  <% if (error) { %><p class="err"><%= error %></p><% } %>
+  <form method="post" action="/dashboard" class="sws">
+    <input type="hidden" name="csrf" value="<%= csrf %>">
+    <div class="card2 form"><div class="sh"><svg class="i"><use href="#i-user"/></svg><div><h3>Personal information</h3><p>Who you are.</p></div></div>
+      <label>Full name<input name="full_name" maxlength="60" required value="<%= p.full_name %>"></label>
+      <label class="check"><input type="checkbox" name="show_name" <%= p.show_name ? 'checked' : '' %>> Show my name on Google</label>
+      <label>Country<input name="country" maxlength="56" value="<%= p.country || '' %>"></label>
+      <label class="check"><input type="checkbox" name="show_country" <%= p.show_country ? 'checked' : '' %>> Show my country on Google</label>
+      <label>Date of birth (never shown)<input type="date" name="dob" value="<%= p.dob ? new Date(p.dob).toISOString().slice(0, 10) : '' %>"></label>
+      <label class="check"><input type="checkbox" name="show_age" <%= p.show_age ? 'checked' : '' %>> Show my age on Google</label>
+      <label class="check"><input type="checkbox" name="show_photo" <%= p.show_photo ? 'checked' : '' %>> Show my photo on Google</label>
+      <button class="btn">Save changes</button>
+    </div>
+  </form>
+  <div class="card2"><div class="sh"><svg class="i"><use href="#i-eye"/></svg><div><h3>Profile photograph</h3><p>A clear photo of your face.</p></div></div>
+    <% if (p.has_photo) { %><img class="avatar big2" src="/photo/<%= p.username %>" alt="Your photo">
+      <p class="hint"><%= p.verify_status === 'verified' ? 'Verified.' : 'Not verified yet. It stays off Google until you verify.' %> <% if (p.verify_status !== 'verified') { %><a href="/verify">Verify now</a><% } %></p><% } %>
+    <form method="post" action="/dashboard/photo" enctype="multipart/form-data" class="form">
+      <input type="hidden" name="csrf" value="<%= csrf %>">
+      <label>Upload a new photo<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label>
+      <button class="btn alt">Upload photo</button>
+    </form></div>
+</section>
+<%- include('foot') %>

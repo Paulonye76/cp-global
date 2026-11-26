@@ -1,0 +1,13 @@
+<%- include('head', { title: 'Notifications | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
+<section class="dash">
+  <div class="hello"><h1>Notifications</h1><p>Messages about your profile.</p></div>
+  <% if (!list.length) { %><div class="card2 empty"><h3>Nothing here yet</h3><p class="hint">We will message you here.</p></div><% } %>
+  <% list.forEach(function (n) { %>
+  <div class="nt2 <%= n.read ? '' : 'new' %>">
+    <span class="ni"><svg class="<%= n.key === 'verify' ? 'vb2' : 'i' %>"><use href="<%= n.key === 'verify' ? '#i-seal' : '#i-bell' %>"/></svg></span>
+    <div><b><%= n.title %></b><p><%= n.body %></p><small><%= new Date(n.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) %></small>
+      <% if (n.label && n.url) { %><a class="btn small" href="<%= n.url %>"><%= n.label %></a><% } %></div>
+  </div>
+  <% }) %>
+</section>
+<%- include('foot') %>

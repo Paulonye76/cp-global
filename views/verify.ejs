@@ -1,0 +1,33 @@
+<%- include('head', { title: 'Verify your profile | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
+<% var vs = p.verify_status || 'none'; %>
+<section class="dash">
+  <div class="hello"><h1>Verify your <span class="g">profile</span></h1><p>Prove it is really you.</p></div>
+  <% if (vs === 'verified') { %>
+    <div class="card2 vdone"><svg class="vb huge"><use href="#i-seal"/></svg><h3>You are verified</h3><p class="hint"><%= p.verified_at ? 'Verified on ' + new Date(p.verified_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '.' : '' %> Your badge shows on your page and your photo can appear on Google.</p><a class="btn" href="/<%= p.username %>">View my page</a></div>
+  <% } else if (vs === 'pending') { %>
+    <div class="card2 vdone"><svg class="vb huge pulse"><use href="#i-seal"/></svg><h3>Under review</h3><p class="hint">We review each request by hand. You will get a message in Notifications when it is done.</p><a class="btn alt" href="/notifications">Open notifications</a></div>
+  <% } else if (!p.has_photo) { %>
+    <div class="card2 vdone"><h3>Add your photo first</h3><p class="hint">We compare your selfies with your profile photo.</p><a class="btn" href="/dashboard/profile">Add a photo</a></div>
+  <% } else { %>
+    <% if (vs === 'rejected') { %><p class="err">Last attempt did not pass. <%= p.verify_note || '' %></p><% } %>
+    <div class="card2 vcam" data-verify data-csrf="<%= csrf %>" data-prompt="<%= prompt %>">
+      <div class="vp1">
+        <h3>How it works</h3>
+        <ul class="cl"><li class="ok1"><svg class="i"><use href="#i-check"/></svg>Take two quick selfies with your camera</li><li class="ok1"><svg class="i"><use href="#i-check"/></svg>We compare them with your profile photo</li><li class="ok1"><svg class="i"><use href="#i-check"/></svg>Your selfies are deleted once we decide</li></ul>
+        <button type="button" class="btn big" data-start>Start camera</button>
+      </div>
+      <div class="vp2" hidden>
+        <div class="cam"><video playsinline muted autoplay></video></div>
+        <p class="vq"></p>
+        <button type="button" class="btn big" data-snap>Take photo</button>
+      </div>
+      <div class="vp3" hidden>
+        <div class="shots"><img alt="First selfie"><img alt="Second selfie"></div>
+        <button type="button" class="btn big" data-send>Submit for review</button>
+        <button type="button" class="btn ghost big" data-retake>Retake</button>
+      </div>
+      <p class="vmsg" role="status"></p>
+    </div>
+  <% } %>
+</section>
+<%- include('foot') %>

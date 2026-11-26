@@ -25,6 +25,7 @@ const SOURCES = ['TikTok', 'Instagram', 'Friend or family', 'Google', 'Other'];
 const OPEN_TIERS = process.env.OPEN_TIERS === '1';
 const GID = process.env.GOOGLE_CLIENT_ID;
 const GSEC = process.env.GOOGLE_CLIENT_SECRET;
+const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
 const pick = (v, list) => list.includes(v) ? v : null;
 function cleanUrl(u) {
   u = String(u || '').trim().slice(0, 200);
@@ -71,6 +72,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 *
 app.use((req, res, next) => {
   res.locals.user = null;
   res.locals.csrf = '';
+  res.locals.unread = 0;
+  res.locals.admin = false;
   res.locals.base = BASE;
   res.locals.v = VERSION;
   res.set('Cache-Control', 'no-cache');
@@ -81,6 +84,10 @@ app.use((req, res, next) => {
       req.user = { id: d.id, c: d.c };
       res.locals.user = req.user;
       res.locals.csrf = d.c;
+      res.locals.unread = store.unread(d.id);
+      const me = store.userById(d.id);
+      req.admin = !!(me && ADMIN_EMAIL && me.email === ADMIN_EMAIL);
+      res.locals.admin = req.admin;
     }
   } catch (e) { res.clearCookie('cp'); }
   next();
@@ -174,7 +181,7 @@ app.post('/dashboard', requireAuth, checkCsrf, async (req, res) => {
   let dob = String(b.dob || '').trim() || null;
   const back = async (error) => {
     const p = myProfile(req.user.id);
-    res.status(400).render('dashboard', { p, live: isLive(p), daysLeft: null, msg: null, error });
+    res.status(400).render('profile-edit', { p, msg: null, error });
   };
   if (!full) return back('Name cannot be empty.');
   if (dob) {
@@ -185,14 +192,15 @@ app.post('/dashboard', requireAuth, checkCsrf, async (req, res) => {
     full_name: full, country: country || null, show_name: b.show_name === 'on',
     show_country: b.show_country === 'on', show_age: b.show_age === 'on', show_photo: b.show_photo === 'on'
   }, dob);
-  res.redirect('/dashboard?m=Saved');
+  res.redirect('/dashboard/profile?m=Saved');
 });
 
 app.post('/dashboard/photo', requireAuth, upload.single('photo'), checkCsrf, async (req, res) => {
   const type = req.file && sniffImage(req.file.buffer);
-  if (!type) return res.redirect('/dashboard?m=Use a JPG, PNG or WebP image under 2 MB');
+  if (!type) return res.redirect('/dashboard/profile?m=Use a JPG, PNG or WebP image under 2 MB');
   store.setPhoto(req.user.id, req.file.buffer, type);
-  res.redirect('/dashboard?m=Photo uploaded');
+  store.notify(req.user.id, 'verify', { title: 'Verify your profile', body: 'Your new photo needs to be verified before it can show on Google.', label: 'Verify now', url: '/verify' });
+  res.redirect('/dashboard/profile?m=Photo uploaded');
 });
 
 app.get('/auth/google', (req, res) => {
@@ -271,7 +279,8 @@ app.get('/discover', (req, res) => {
     category: p.tier >= 2 ? p.category : null,
     place: p.show_country ? [p.city, p.country].filter(Boolean).join(', ') : '',
     photo: !!(p.photo_verified && p.show_photo && p.has_photo),
-    views: p.views || 0
+    views: p.views || 0,
+    verified: p.verify_status === 'verified'
   }));
   if (q) list = list.filter(x => x.username.includes(q) || (x.name && x.name.toLowerCase().includes(q)) || (x.category && x.category.toLowerCase().includes(q)));
   if (cat) list = list.filter(x => x.category === cat);
@@ -284,6 +293,87 @@ app.post('/api/share', requireAuth, (req, res) => {
   if (req.get('x-csrf') !== req.user.c) return res.sendStatus(403);
   store.incr(req.user.id, 'shares');
   res.json({ ok: true });
+});
+
+function requireAdmin(req, res, next) {
+  if (!req.user) return res.redirect('/login');
+  if (!req.admin) return res.status(404).render('message', { title: 'Page not found', text: 'Check the address and try again.' });
+  next();
+}
+
+app.get('/dashboard/profile', requireAuth, (req, res) => {
+  const p = myProfile(req.user.id);
+  if (!p) return res.redirect('/login');
+  res.render('profile-edit', { p, msg: req.query.m || null, error: null });
+});
+
+app.get('/dashboard/qr', requireAuth, (req, res) => {
+  const p = myProfile(req.user.id);
+  if (!p) return res.redirect('/login');
+  res.render('qr', { p });
+});
+
+app.get('/notifications', requireAuth, (req, res) => {
+  const list = store.notifications(req.user.id);
+  store.markRead(req.user.id);
+  res.render('notifications', { list });
+});
+
+const PROMPTS = ['Turn your head slightly to the left', 'Turn your head slightly to the right', 'Smile with your teeth showing', 'Look up at the ceiling'];
+
+app.get('/verify', requireAuth, (req, res) => {
+  const p = myProfile(req.user.id);
+  if (!p) return res.redirect('/login');
+  res.render('verify', { p, prompt: PROMPTS[Math.floor(Math.random() * PROMPTS.length)] });
+});
+
+function dataJpeg(s) {
+  const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(s || ''));
+  if (!m) return null;
+  const b = Buffer.from(m[1], 'base64');
+  return b.length > 1000 && b.length < 700000 && sniffImage(b) === 'image/jpeg' ? b : null;
+}
+
+app.post('/verify/submit', requireAuth, express.json({ limit: '2mb' }), (req, res) => {
+  if (req.get('x-csrf') !== req.user.c) return res.sendStatus(403);
+  const p = myProfile(req.user.id);
+  const a = dataJpeg(req.body.a), b = dataJpeg(req.body.b);
+  if (!p || !p.has_photo || !a || !b || p.verify_status === 'verified') return res.status(400).json({ ok: false });
+  store.saveSelfies(req.user.id, [a, b]);
+  store.updateProfile(req.user.id, { verify_status: 'pending', verify_prompt: String(req.body.prompt || '').slice(0, 80), verify_note: '' });
+  store.notify(req.user.id, 'verify', { title: 'Verification under review', body: 'We review each request by hand. You will get a message here when it is done.' });
+  res.json({ ok: true });
+});
+
+app.get('/admin/verify', requireAdmin, (req, res) => {
+  res.render('admin-verify', { list: store.allProfiles().filter(p => p.verify_status === 'pending') });
+});
+
+app.get('/admin/verify/img/:id/:n', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const p = store.profileByUserId(id);
+  const photo = req.params.n === 'photo';
+  const buf = photo ? (p && p.has_photo ? store.photo(id) : null) : store.selfie(id, parseInt(req.params.n, 10));
+  if (!buf) return res.sendStatus(404);
+  res.set('Content-Type', photo ? p.photo_type : 'image/jpeg');
+  res.set('Cache-Control', 'private, no-store');
+  res.send(buf);
+});
+
+app.post('/admin/verify/:id', requireAdmin, checkCsrf, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const p = store.profileByUserId(id);
+  if (!p || p.verify_status !== 'pending') return res.redirect('/admin/verify');
+  const note = String(req.body.note || 'The photos did not match.').slice(0, 140);
+  if (req.body.action === 'approve') {
+    store.updateProfile(id, { verify_status: 'verified', verified_at: new Date().toISOString(), photo_verified: true, verify_note: '' });
+    store.notify(id, 'verify', { title: 'You are verified', body: 'Your profile now carries the CP Global verified badge, and your photo can show on Google.', label: 'View my profile', url: '/' + p.username });
+  } else {
+    store.updateProfile(id, { verify_status: 'rejected', verify_note: note });
+    store.notify(id, 'verify', { title: 'Verification did not pass', body: note + ' Try again with a clear, well-lit photo.', label: 'Try again', url: '/verify' });
+  }
+  store.clearSelfies(id);
+  res.redirect('/admin/verify');
 });
 
 app.get('/welcome', requireAuth, (req, res) => {
@@ -306,6 +396,7 @@ app.post('/welcome', requireAuth, upload.single('photo'), checkCsrf, (req, res) 
   }, dob);
   const type = req.file && sniffImage(req.file.buffer);
   if (type) store.setPhoto(req.user.id, req.file.buffer, type);
+  store.notify(req.user.id, 'verify', { title: 'Verify your profile', body: 'Confirm it is really you to unlock your verified badge and show your photo on Google.', label: 'Verify now', url: '/verify' });
   res.redirect('/dashboard');
 });
 
@@ -348,6 +439,7 @@ app.post('/publish', requireAuth, checkCsrf, (req, res) => {
   }
   f.tier = tier;
   store.updateProfile(req.user.id, f);
+  store.notify(req.user.id, 'live', { title: 'You are live on Google', body: 'Your page is public. Google can take a few days to show it.', label: 'View my page', url: '/' + p.username });
   res.redirect('/dashboard?m=' + encodeURIComponent('You are live on Google.'));
 });
 
@@ -401,7 +493,7 @@ app.get('/:username', async (req, res, next) => {
   if (ach.length) ld.award = ach;
   if (p.tier === 3 && p.show_contact && p.public_email) ld.email = p.public_email;
   res.render('profile', {
-    p, name, country, age, photoPublic, ach,
+    p, name, country, age, photoPublic, ach, verified: p.verify_status === 'verified', vdate: p.verified_at,
     place: country ? [p.city, country].filter(Boolean).join(', ') : '',
     since: p.joined ? new Date(p.joined).getFullYear() : null,
     title: '@' + p.username + (showName ? ' | ' + p.full_name : '') + ' | CP Global',

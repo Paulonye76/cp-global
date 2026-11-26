@@ -1,18 +1,18 @@
-<%- include('head') %>
+<%- include('head', { back: '/discover' }) %>
 <section class="pp">
   <div class="ppt">
-    <h1><%= name %></h1>
+    <h1><%= name %><% if (verified) { %><svg class="vb big4" aria-label="Verified"><use href="#i-seal"/></svg><% } %></h1>
     <p class="tag"><% if (p.tier >= 2 && p.category) { %><%= p.category %><% } %><% if (p.tier >= 2 && p.category && place) { %> <em>&amp;</em> <% } %><%= place %></p>
     <p class="handle">@<%= p.username %></p>
     <% if (p.tier >= 2 && p.bio) { %><p class="txt"><%= p.bio %></p><% } %>
     <% if (p.tier === 3 && p.links && p.links.length) { %><div class="links"><% p.links.forEach(function (l) { %><a class="lk" rel="nofollow ugc noopener" target="_blank" href="<%= l %>"><%= new URL(l).hostname.replace(/^www\./, '') %></a><% }) %></div><% } %>
   </div>
   <div class="pph">
-    <% if (photoPublic) { %><img class="ph" src="/photo/<%= p.username %>" alt="<%= name %>"><% } else { %><div class="ph blank" aria-hidden="true"><%= name.replace('@', '').charAt(0).toUpperCase() %></div><% } %>
+    <% if (photoPublic) { %><img class="ph <%= verified ? 'vr' : '' %>" src="/photo/<%= p.username %>" alt="<%= name %>"><% } else { %><div class="ph blank <%= verified ? 'vr' : '' %>" aria-hidden="true"><%= name.replace('@', '').charAt(0).toUpperCase() %></div><% } %>
+    <% if (verified) { %><div class="vpill"><svg class="vb2"><use href="#i-seal"/></svg>Verified by CP Global<% if (vdate) { %> | <%= new Date(vdate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) %><% } %></div><% } %>
     <ul class="facts">
       <% if (age) { %><li><b><%= age %></b><span>Age</span></li><% } %>
       <% if (since) { %><li><b><%= since %></b><span>Member since</span></li><% } %>
-      <% if (photoPublic) { %><li><b>Verified</b><span>Face</span></li><% } %>
     </ul>
   </div>
 </section>

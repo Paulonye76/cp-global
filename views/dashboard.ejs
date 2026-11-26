@@ -3,88 +3,66 @@
    var pct = Math.round(items.filter(function (x) { return x[1]; }).length / items.length * 100);
    var paused = !live && p.trial_used;
    var url = base + '/' + p.username;
-   var title = '@' + p.username + (p.show_name ? ' | ' + p.full_name : '') + ' | CP Global'; %>
-<div class="shell">
-  <nav class="side" aria-label="Dashboard">
-    <a class="on" href="/dashboard"><svg class="i"><use href="#i-eye"/></svg>Overview</a>
-    <a href="#details"><svg class="i"><use href="#i-user"/></svg>My profile</a>
-    <a href="/publish"><svg class="i"><use href="#i-shield"/></svg>Go live</a>
-    <a href="/discover"><svg class="i"><use href="#i-compass"/></svg>Discover</a>
-    <a href="#qr"><svg class="i"><use href="#i-qr"/></svg>QR code</a>
-    <button type="button" data-logout><svg class="i"><use href="#i-out"/></svg>Log out</button>
-  </nav>
-  <section class="dash2">
-    <div class="hello"><h1>Hi, <%= p.full_name.split(' ')[0] %></h1><p>Manage your page and how Google sees you.</p></div>
-    <% if (msg) { %><p class="ok"><%= msg %></p><% } %>
-    <% if (error) { %><p class="err"><%= error %></p><% } %>
+   var title = '@' + p.username + (p.show_name ? ' | ' + p.full_name : '') + ' | CP Global';
+   var vs = p.verify_status || 'none'; %>
+<section class="dash">
+  <div class="hello"><h1>Hi, <%= p.full_name.split(' ')[0] %></h1><p>Manage your page and how Google sees you.</p></div>
+  <% if (msg) { %><p class="ok"><%= msg %></p><% } %>
 
-    <div class="hero2 <%= live ? 'live' : '' %>">
-      <div class="ringp" style="--p:<%= pct %>"><b><%= pct %>%</b><span>complete</span></div>
-      <div class="h2c">
-        <% if (live) { %><h2>You are live on Google</h2><p><%= daysLeft !== null ? 'Free trial ends in ' + daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + '.' : 'Your page is public.' %></p>
-          <a class="btn" href="/<%= p.username %>">View my page</a> <a class="btn alt" href="/publish">Change plan</a>
-        <% } else if (paused) { %><h2>Your page is paused</h2><p>Choose a plan to go live again.</p><a class="btn" href="/publish">Choose a plan</a>
-        <% } else { %><h2>Make your profile live on Google</h2><p>Choose a plan, check your details and publish. Your first 3 days are free.</p><a class="btn shine" href="/publish">Make it live</a><% } %>
-      </div>
+  <div class="hero2 <%= live ? 'live' : '' %>">
+    <div class="ringp" style="--p:<%= pct %>"><b><%= pct %>%</b><span>complete</span></div>
+    <div class="h2c">
+      <% if (live) { %><h2>You are live on Google</h2><p><%= daysLeft !== null ? 'Free trial ends in ' + daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + '.' : 'Your page is public.' %></p>
+        <a class="btn" href="/<%= p.username %>">View my page</a> <a class="btn alt" href="/publish">Change plan</a>
+      <% } else if (paused) { %><h2>Your page is paused</h2><p>Choose a plan to go live again.</p><a class="btn" href="/publish">Choose a plan</a>
+      <% } else { %><h2>Make your profile live on Google</h2><p>Choose a plan, check your details and publish. Your first 3 days are free.</p><a class="btn shine" href="/publish">Make it live</a><% } %>
     </div>
+  </div>
 
-    <div class="g2">
-      <div class="card2 pc">
-        <% if (p.has_photo) { %><img class="avatar big2" src="/photo/<%= p.username %>" alt="Your photo"><% } else { %><svg class="av big2" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><% } %>
-        <div><h3><%= p.full_name %></h3><p class="hint">@<%= p.username %><%= p.category ? ' | ' + p.category : '' %></p>
-          <a class="btn alt small" href="#details"><svg class="i"><use href="#i-edit"/></svg> Edit profile</a></div>
-      </div>
-      <div class="card2">
-        <h3>Google visibility</h3>
-        <p class="vis <%= live ? 'ok1' : '' %>"><%= live ? 'Your page is public and ready for Google.' : 'Your page is not public, so Google cannot show it.' %></p>
-        <div class="serp2"><small><%= url.replace(/^https?:\/\//, '') %></small><b><%= title %></b><p><%= (p.tier >= 2 && p.bio) ? p.bio : p.full_name + ' on CP Global. Find @' + p.username + ' first.' %></p></div>
-        <a class="btn alt small" target="_blank" rel="noopener" href="https://www.google.com/search?q=<%= encodeURIComponent('@' + p.username) %>">Search it on Google</a>
-        <p class="hint">Google finds new pages through our sitemap. This can take a few days.</p>
-      </div>
+  <div class="card2 vcard <%= vs %>">
+    <svg class="vb big3"><use href="#i-seal"/></svg>
+    <div>
+      <% if (vs === 'verified') { %><h3>You are verified</h3><p class="hint">Your profile shows the CP Global verified badge.</p>
+      <% } else if (vs === 'pending') { %><h3>Verification under review</h3><p class="hint">We will message you in Notifications when it is done.</p>
+      <% } else if (!p.has_photo) { %><h3>Add a photo to get verified</h3><p class="hint">Your photo stays off Google until you are verified.</p><a class="btn alt small" href="/dashboard/profile">Add a photo</a>
+      <% } else { %><h3>Get your verified badge</h3><p class="hint">Two quick selfies. Your photo can then show on Google.</p><a class="btn small" href="/verify">Verify now</a><% } %>
     </div>
+  </div>
 
-    <div class="stats">
-      <div class="stat"><svg class="i"><use href="#i-eye"/></svg><b><%= p.views || 0 %></b><span>Page views</span></div>
-      <div class="stat"><svg class="i"><use href="#i-share"/></svg><b><%= p.shares || 0 %></b><span>Shares</span></div>
-      <div class="stat"><svg class="i"><use href="#i-shield"/></svg><b>Tier <%= p.tier || 1 %></b><span>Your plan</span></div>
+  <div class="g2">
+    <div class="card2 pc">
+      <% if (p.has_photo) { %><img class="avatar big2" src="/photo/<%= p.username %>" alt="Your photo"><% } else { %><svg class="av big2" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><% } %>
+      <div><h3><%= p.full_name %><% if (vs === 'verified') { %><svg class="vb"><use href="#i-seal"/></svg><% } %></h3><p class="hint">@<%= p.username %><%= p.category ? ' | ' + p.category : '' %></p>
+        <a class="btn alt small" href="/dashboard/profile"><svg class="i"><use href="#i-edit"/></svg> Edit profile</a></div>
     </div>
-
-    <div class="card2"><h3>Quick actions</h3>
-      <div class="qa">
-        <a href="#details"><svg class="i"><use href="#i-edit"/></svg>Edit profile</a>
-        <button type="button" data-share data-url="<%= url %>" data-title="<%= title %>" data-csrf="<%= csrf %>"><svg class="i"><use href="#i-share"/></svg><span>Share page</span></button>
-        <a href="/qr/<%= p.username %>" download="cp-global-<%= p.username %>-qr.svg"><svg class="i"><use href="#i-qr"/></svg>Download QR</a>
-        <a href="/publish"><svg class="i"><use href="#i-shield"/></svg>Change plan</a>
-        <a href="/discover"><svg class="i"><use href="#i-compass"/></svg>Discover</a>
-        <a href="/<%= p.username %>"><svg class="i"><use href="#i-eye"/></svg>My page</a>
-      </div>
+    <div class="card2">
+      <h3>Google visibility</h3>
+      <p class="vis <%= live ? 'ok1' : '' %>"><%= live ? 'Your page is public and ready for Google.' : 'Your page is not public, so Google cannot show it.' %></p>
+      <div class="serp2"><small><%= url.replace(/^https?:\/\//, '') %></small><b><%= title %></b><p><%= (p.tier >= 2 && p.bio) ? p.bio : p.full_name + ' on CP Global. Find @' + p.username + ' first.' %></p></div>
+      <a class="btn alt small" target="_blank" rel="noopener" href="https://www.google.com/search?q=<%= encodeURIComponent('@' + p.username) %>">Search it on Google</a>
+      <p class="hint">Google finds new pages through our sitemap. This can take a few days.</p>
     </div>
+  </div>
 
-    <div class="card2"><h3>Your checklist</h3>
-      <ul class="cl"><% items.forEach(function (x) { %><li class="<%= x[1] ? 'ok1' : '' %>"><svg class="i"><use href="#i-check"/></svg><%= x[0] %></li><% }) %></ul></div>
+  <div class="stats">
+    <div class="stat"><svg class="i"><use href="#i-eye"/></svg><b><%= p.views || 0 %></b><span>Page views</span></div>
+    <div class="stat"><svg class="i"><use href="#i-share"/></svg><b><%= p.shares || 0 %></b><span>Shares</span></div>
+    <div class="stat"><svg class="i"><use href="#i-shield"/></svg><b>Tier <%= p.tier || 1 %></b><span>Your plan</span></div>
+  </div>
 
-    <details class="card2 dd" id="details"><summary>Profile details</summary>
-      <form method="post" action="/dashboard" class="form">
-        <input type="hidden" name="csrf" value="<%= csrf %>">
-        <label>Full name<input name="full_name" maxlength="60" required value="<%= p.full_name %>"></label>
-        <label class="check"><input type="checkbox" name="show_name" <%= p.show_name ? 'checked' : '' %>> Show my name on Google</label>
-        <label>Country<input name="country" maxlength="56" value="<%= p.country || '' %>"></label>
-        <label class="check"><input type="checkbox" name="show_country" <%= p.show_country ? 'checked' : '' %>> Show my country on Google</label>
-        <label>Date of birth (never shown)<input type="date" name="dob" value="<%= p.dob ? new Date(p.dob).toISOString().slice(0, 10) : '' %>"></label>
-        <label class="check"><input type="checkbox" name="show_age" <%= p.show_age ? 'checked' : '' %>> Show my age on Google</label>
-        <label class="check"><input type="checkbox" name="show_photo" <%= p.show_photo ? 'checked' : '' %>> Show my photo on Google</label>
-        <button class="btn">Save changes</button>
-      </form></details>
+  <div class="card2"><h3>Quick actions</h3>
+    <div class="qa">
+      <a href="/dashboard/profile"><svg class="i"><use href="#i-edit"/></svg>Edit profile</a>
+      <button type="button" data-share data-url="<%= url %>" data-title="<%= title %>" data-csrf="<%= csrf %>"><svg class="i"><use href="#i-share"/></svg><span>Share page</span></button>
+      <a href="/dashboard/qr"><svg class="i"><use href="#i-qr"/></svg>QR code</a>
+      <a href="/publish"><svg class="i"><use href="#i-shield"/></svg>Change plan</a>
+      <a href="/discover"><svg class="i"><use href="#i-compass"/></svg>Discover</a>
+      <a href="/<%= p.username %>"><svg class="i"><use href="#i-eye"/></svg>My page</a>
+    </div>
+  </div>
 
-    <div class="card2"><h3>Photo</h3>
-      <% if (p.has_photo) { %><p class="hint"><%= p.photo_verified ? 'Face verified.' : 'Waiting for face verification. It stays off Google until it passes.' %></p><% } %>
-      <form method="post" action="/dashboard/photo" enctype="multipart/form-data" class="form">
-        <input type="hidden" name="csrf" value="<%= csrf %>">
-        <label>Upload a clear photo of your face<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label>
-        <button class="btn alt">Upload photo</button>
-      </form></div>
-
-    <div class="card2" id="qr"><h3>Your QR card</h3><img class="qr" src="/qr/<%= p.username %>" alt="QR code for your page"><p class="hint">Scan it to open your page.</p></div>
-  </section>
-</div>
+  <div class="card2"><h3>Your checklist</h3>
+    <ul class="cl"><% items.forEach(function (x) { %><li class="<%= x[1] ? 'ok1' : '' %>"><svg class="i"><use href="#i-check"/></svg><%= x[0] %></li><% }) %></ul>
+    <% if (pct < 100) { %><a class="btn alt small" href="/dashboard/profile">Complete my profile</a><% } %></div>
+</section>
 <%- include('foot') %>

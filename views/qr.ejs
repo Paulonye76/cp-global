@@ -1,0 +1,15 @@
+<%- include('head', { title: 'QR code | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
+<% var url = base + '/' + p.username; %>
+<section class="dash">
+  <div class="hello"><h1>Your QR card</h1><p>Scan it to open your page.</p></div>
+  <div class="card2 qrc">
+    <img class="qrbig" src="/qr/<%= p.username %>" alt="QR code for your page">
+    <b>@<%= p.username %></b>
+    <p class="hint"><%= url.replace(/^https?:\/\//, '') %></p>
+    <div class="qa two">
+      <a href="/qr/<%= p.username %>" download="cp-global-<%= p.username %>-qr.svg"><svg class="i"><use href="#i-qr"/></svg>Download</a>
+      <button type="button" data-share data-url="<%= url %>" data-title="@<%= p.username %> on CP Global" data-csrf="<%= csrf %>"><svg class="i"><use href="#i-share"/></svg><span>Share link</span></button>
+    </div>
+  </div>
+</section>
+<%- include('foot') %>
