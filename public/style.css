@@ -94,7 +94,7 @@ main.home { max-width: none; padding: 0; }
 .checks { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 22px; color: var(--muted); font-size: 14px; font-weight: 500; }
 .checks span { display: inline-flex; gap: 6px; align-items: center; }
 .checks .i { color: var(--green); }
-.stage { position: relative; min-height: 540px; display: grid; place-items: center; }
+.hstage { position: relative; min-height: 540px; display: grid; place-items: center; }
 .glow { position: absolute; width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #b6f5c9, #34c759 55%, #0f5b27); filter: blur(64px); opacity: .5; }
 .glass { background: rgba(255,255,255,.74); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,.95); box-shadow: 0 20px 60px rgba(0,0,0,.13); border-radius: 20px; }
 .phone { position: relative; width: 250px; height: 500px; border-radius: 42px; background: #0b0b0c; padding: 9px; box-shadow: 0 40px 90px rgba(0,0,0,.3); }

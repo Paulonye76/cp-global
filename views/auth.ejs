@@ -30,21 +30,21 @@
       <input type="hidden" name="age13" value="<%= error && mode === 'signup' ? 'on' : '' %>"><input type="hidden" name="terms" value="<%= error && mode === 'signup' ? 'on' : '' %>">
       <% if (error && stage === 'email') { %><p class="aerr"><%= error %></p><% } %>
       <% if (mode === 'signup') { %>
-        <div class="as" data-v="email"><h2>Sign up with email</h2><input class="ain" type="email" name="email" placeholder="Please enter your email" autocomplete="email" value="<%= v.email || '' %>"><button type="button" class="nx" data-n disabled>Next</button></div>
-        <div class="as" data-v="pass"><h2>Create a password</h2><input class="ain" type="password" name="password" placeholder="At least 8 characters" autocomplete="new-password"><button type="button" class="nx" data-n disabled>Next</button></div>
+        <div class="as" data-v="email"><h2>Sign up with email</h2><input class="ain" type="email" name="email" placeholder="Please enter your email" autocomplete="email" value="<%= v.email || '' %>"><button type="button" class="nx" data-n>Next</button></div>
+        <div class="as" data-v="pass"><h2>Create a password</h2><input class="ain" type="password" name="password" placeholder="At least 8 characters" autocomplete="new-password"><button type="button" class="nx" data-n>Next</button></div>
         <div class="as" data-v="user"><h2>Pick your username</h2>
           <div class="at2"><span>@</span><input class="ain" name="username" data-check maxlength="20" autocomplete="off" autocapitalize="none" placeholder="username" value="<%= v.username || '' %>"></div>
           <small id="uMsg"></small>
           <input class="ain" name="full_name" maxlength="60" placeholder="Your full name" autocomplete="name" value="<%= v.full_name || '' %>">
-          <button class="nx" disabled>Create my account</button></div>
+          <button class="nx">Create my account</button></div>
       <% } else if (mode === 'login') { %>
-        <div class="as" data-v="email"><h2>Log in with email</h2><input class="ain" type="email" name="email" placeholder="Please enter your email" autocomplete="email" value="<%= v.email || '' %>"><button type="button" class="nx" data-n disabled>Next</button></div>
-        <div class="as" data-v="any"><h2>Enter your password</h2><input class="ain" type="password" name="password" placeholder="Password" autocomplete="current-password"><button class="nx" disabled>Log in</button></div>
+        <div class="as" data-v="email"><h2>Log in with email</h2><input class="ain" type="email" name="email" placeholder="Please enter your email" autocomplete="email" value="<%= v.email || '' %>"><button type="button" class="nx" data-n>Next</button></div>
+        <div class="as" data-v="any"><h2>Enter your password</h2><input class="ain" type="password" name="password" placeholder="Password" autocomplete="current-password"><button class="nx">Log in</button></div>
       <% } else { %>
         <div class="as" data-v="user"><h2>Pick your username</h2><p class="ac-note">Signed in as <%= email %></p>
           <div class="at2"><span>@</span><input class="ain" name="username" data-check maxlength="20" autocomplete="off" autocapitalize="none" placeholder="username" value="<%= v.username || '' %>"></div>
           <small id="uMsg"></small>
-          <button class="nx" disabled>Create my account</button></div>
+          <button class="nx">Create my account</button></div>
       <% } %>
       <p class="ac-note">By continuing you agree to the Terms of Service and Privacy Policy.</p>
     </form>
