@@ -510,4 +510,4 @@ app.use((err, req, res, next) => {
   res.status(500).render('message', { title: 'Something went wrong', text: 'Try again in a moment.' });
 });
 
-app.listen(PORT, () => console.log('CP Global running on ' + BASE));
+store.ready().then(() => app.listen(PORT, () => console.log('CP Global running on ' + BASE))).catch(e => { console.error(e); process.exit(1); });

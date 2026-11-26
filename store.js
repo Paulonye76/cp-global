@@ -1,6 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const pool = process.env.DATABASE_URL
+  ? new (require('pg').Pool)({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+  : null;
+const files = new Map();
+const fileQueue = [];
+let dbDirty = false;
+let running = false;
 
 const DIR = path.join(__dirname, 'data');
 const PHOTOS = path.join(DIR, 'photos');
@@ -13,6 +20,47 @@ db.notifications = db.notifications || [];
 const VDIR = path.join(DIR, 'verify');
 fs.mkdirSync(VDIR, { recursive: true });
 
+async function kick() {
+  if (!pool || running) return;
+  running = true;
+  try {
+    while (fileQueue.length || dbDirty) {
+      if (fileQueue.length) {
+        const f = fileQueue.shift();
+        if (f.del) await pool.query('delete from files where name=$1', [f.name]);
+        else await pool.query('insert into files(name,data) values($1,$2) on conflict (name) do update set data=excluded.data', [f.name, f.data]);
+      } else {
+        dbDirty = false;
+        await pool.query("insert into kv(k,v) values('db',$1) on conflict (k) do update set v=excluded.v", [JSON.stringify(db)]);
+      }
+    }
+  } catch (e) { console.error('persist failed', e.message); }
+  running = false;
+}
+
+async function load() {
+  if (!pool) return;
+  await pool.query('create table if not exists kv (k text primary key, v text not null)');
+  await pool.query('create table if not exists files (name text primary key, data bytea not null)');
+  const r = await pool.query("select v from kv where k='db'");
+  if (r.rowCount) { db = JSON.parse(r.rows[0].v); db.notifications = db.notifications || []; }
+  (await pool.query('select name, data from files')).rows.forEach(x => files.set(x.name, x.data));
+}
+
+function putFile(name, buf) {
+  if (pool) { files.set(name, buf); fileQueue.push({ name, data: buf }); kick(); }
+  else fs.writeFileSync(path.join(DIR, name), buf);
+}
+function getFile(name) {
+  if (pool) return files.get(name) || null;
+  const f = path.join(DIR, name);
+  return fs.existsSync(f) ? fs.readFileSync(f) : null;
+}
+function delFile(name) {
+  if (pool) { files.delete(name); fileQueue.push({ name, del: true }); kick(); }
+  else { try { fs.unlinkSync(path.join(DIR, name)); } catch (e) {} }
+}
+
 let timer;
 function saveSoon() { clearTimeout(timer); timer = setTimeout(save, 2000); }
 
@@ -20,6 +68,7 @@ function save() {
   const tmp = FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(db));
   fs.renameSync(tmp, FILE);
+  if (pool) { dbDirty = true; kick(); }
 }
 
 function secret() {
@@ -66,9 +115,10 @@ module.exports = {
   unread: id => db.notifications.filter(x => x.user_id === id && !x.read).length,
   markRead(id) { db.notifications.forEach(x => { if (x.user_id === id) x.read = true; }); saveSoon(); },
   userById: id => db.users.find(u => u.id === id) || null,
-  saveSelfies(id, bufs) { bufs.forEach((b, k) => fs.writeFileSync(path.join(VDIR, id + '-' + (k + 1) + '.jpg'), b)); },
-  selfie(id, n) { const f = path.join(VDIR, id + '-' + n + '.jpg'); return fs.existsSync(f) ? fs.readFileSync(f) : null; },
-  clearSelfies(id) { [1, 2].forEach(n => { try { fs.unlinkSync(path.join(VDIR, id + '-' + n + '.jpg')); } catch (e) {} }); },
+  saveSelfies(id, bufs) { bufs.forEach((b, k) => putFile('verify/' + id + '-' + (k + 1) + '.jpg', b)); },
+  selfie: (id, n) => getFile('verify/' + id + '-' + n + '.jpg'),
+  clearSelfies(id) { [1, 2].forEach(n => delFile('verify/' + id + '-' + n + '.jpg')); },
+  ready: load,
   secret,
   createAccount,
   setGoogle(id, hash) { const u = db.users.find(x => x.id === id); u.password_hash = hash; u.google = true; save(); },
@@ -83,7 +133,7 @@ module.exports = {
     save();
   },
   setPhoto(userId, buf, type) {
-    fs.writeFileSync(path.join(PHOTOS, String(userId)), buf);
+    putFile('photos/' + userId, buf);
     const p = db.profiles.find(x => x.user_id === userId);
     p.photo_type = type;
     p.photo_verified = false;
@@ -91,5 +141,5 @@ module.exports = {
     p.verified_at = null;
     save();
   },
-  photo: userId => fs.readFileSync(path.join(PHOTOS, String(userId)))
+  photo: userId => getFile('photos/' + userId)
 };
