@@ -1,5 +1,5 @@
 <%- include('head', { title: 'Welcome | CP Global', noindex: true }) %>
-<div class="onb" data-onb data-s="splash">
+<div class="onb" data-onb data-s="<%= err ? 'chat' : 'splash' %>" data-start="<%= start %>">
   <div class="stage s-splash">
     <div class="ic">cp</div>
     <div class="wm" aria-label="CP Global"><% 'CP Global'.split('').forEach(function (c, k) { %><span style="--i:<%= k %>"><%= c === ' ' ? '\u00a0' : c %></span><% }) %></div>
@@ -21,12 +21,13 @@
 
   <div class="stage s-chat">
     <div class="pbar"><i></i></div>
+    <% if (err) { %><p class="aerr onbe"><%= err %></p><% } %>
     <button class="bk" type="button" data-back aria-label="Back"><svg class="i" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
     <form method="post" action="/welcome" enctype="multipart/form-data" class="qwrap">
       <input type="hidden" name="csrf" value="<%= csrf %>">
 
       <div class="qs" data-auto><div class="me">cp</div><h2 class="q">Hi <%= p.full_name.split(' ')[0] %>, let’s get started. Which best describes you?</h2>
-        <div class="ans"><% CATS.forEach(function (c) { %><label><input type="radio" name="category" value="<%= c %>"><span><%= c %></span></label><% }) %></div></div>
+        <div class="ans"><% CATS.forEach(function (c) { %><label><input type="radio" name="category" value="<%= c %>"><span><%= c %></span></label><% }) %><div class="other-box" hidden><input class="pin" name="category_other" maxlength="40" placeholder="Tell us what you do"><button type="button" class="pill go" data-other-next>Continue</button></div></div></div>
 
       <div class="qs" data-auto><div class="me">cp</div><h2 class="q">What brings you here?</h2>
         <div class="ans"><% GOALS.forEach(function (c) { %><label><input type="radio" name="goal" value="<%= c %>"><span><%= c %></span></label><% }) %></div></div>
@@ -34,14 +35,14 @@
       <div class="qs" data-auto><div class="me">cp</div><h2 class="q">How did you hear about us?</h2>
         <div class="ans"><% SOURCES.forEach(function (c) { %><label><input type="radio" name="source" value="<%= c %>"><span><%= c %></span></label><% }) %></div></div>
 
-      <div class="qs"><div class="me">cp</div><h2 class="q">When’s your birthday?</h2>
-        <div class="ans"><input class="pin" type="date" name="dob" aria-label="Date of birth"><button type="button" class="pill go" data-next>Continue</button></div></div>
+      <div class="qs" data-v="dob"><div class="me">cp</div><h2 class="q">When’s your birthday?</h2>
+        <div class="ans"><input class="pin" type="date" name="dob" aria-label="Date of birth" required max="<%= new Date().toISOString().slice(0, 10) %>"><p class="agev" data-agev></p><button type="button" class="pill go" data-next>Continue</button></div></div>
 
       <div class="qs" data-auto><div class="me">cp</div><h2 class="q">Want your age shown on your page?</h2>
         <div class="ans"><label><input type="radio" name="show_age" value="on"><span>Yes, show it</span></label><label><input type="radio" name="show_age" value="off"><span>No, keep it private</span></label></div></div>
 
-      <div class="qs"><div class="me">cp</div><h2 class="q">Where are you based?</h2>
-        <div class="ans"><input class="pin" name="country" maxlength="56" placeholder="Country" value="<%= p.country || '' %>"><input class="pin" name="city" maxlength="60" placeholder="City"><button type="button" class="pill go" data-next>Continue</button></div></div>
+      <div class="qs" data-v="country"><div class="me">cp</div><h2 class="q">Where are you based?</h2>
+        <div class="ans"><input class="pin" name="country" maxlength="56" required placeholder="Country (required)" value="<%= p.country || '' %>"><input class="pin" name="city" maxlength="60" placeholder="City"><button type="button" class="pill go" data-next>Continue</button></div></div>
 
       <div class="qs"><div class="me">cp</div><h2 class="q">Add a clear photo of your face.</h2>
         <div class="ans"><label class="pill go">Choose a photo<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" hidden data-photo></label><button type="button" class="pill" data-next>Skip for now</button></div></div>

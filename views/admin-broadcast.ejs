@@ -1,0 +1,17 @@
+<%- include('head', { title: 'Broadcast | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
+<section class="dash adm">
+  <div class="hello"><h1>Broadcast</h1><p>Send a message to every user's notifications.</p></div>
+  <%- include('admin-nav', { tab: 'b' }) %>
+  <% if (msg) { %><p class="ok"><%= msg %></p><% } %>
+  <form method="post" action="/admin/broadcast" class="sws">
+    <input type="hidden" name="csrf" value="<%= csrf %>">
+    <div class="card2 form">
+      <label>Title<input name="title" maxlength="80" required></label>
+      <label>Message<textarea name="body" maxlength="300" rows="4"></textarea></label>
+      <label>Button label (optional)<input name="label" maxlength="30" placeholder="Open"></label>
+      <label>Button link (optional, starts with /)<input name="url" maxlength="100" placeholder="/publish"></label>
+      <button class="btn">Send to everyone</button>
+    </div>
+  </form>
+</section>
+<%- include('foot') %>

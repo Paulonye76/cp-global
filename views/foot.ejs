@@ -1,30 +1,43 @@
 </main>
+<% if (locals.page === 'home') { %>
 <footer class="fx">
   <div class="wrap fxg">
     <div><a class="brand" href="/">CP Global</a><p>Search your username. Find yourself first.</p></div>
-    <div><b>Product</b><a href="/#how">How it works</a><a href="/#features">Features</a><a href="/#plans">Plans</a><a href="/discover">Discover people</a><a href="/#faq">FAQ</a></div>
+    <div><b>Product</b><a href="/how-it-works">How it works</a><a href="/features">Features</a><a href="/plans">Plans</a><a href="/discover">Discover people</a><a href="/faq">FAQ</a></div>
     <div><b>Account</b><a href="/register">Claim your username</a><a href="/login">Log in</a></div>
   </div>
   <div class="wrap fxb">CP Global. Real people, verified faces, found first.</div>
 </footer>
+<% } %>
 <button class="totop" type="button" data-top aria-label="Back to top"><svg class="i"><use href="#i-up"/></svg></button>
-<% if (user) { %>
-<form id="logoutForm" method="post" action="/logout"><input type="hidden" name="csrf" value="<%= csrf %>"></form>
 <div class="scrim" data-scrim></div>
 <aside class="drawer" data-drawer aria-hidden="true">
   <div class="dh2"><b>Menu</b><button class="hb" type="button" data-menu-close aria-label="Close menu"><svg class="i"><use href="#i-close"/></svg></button></div>
   <nav>
-    <a href="/dashboard"><svg class="i"><use href="#i-eye"/></svg>Overview</a>
-    <a href="/dashboard/profile"><svg class="i"><use href="#i-user"/></svg>My profile</a>
-    <a href="/publish"><svg class="i"><use href="#i-shield"/></svg>Go live</a>
-    <a href="/verify"><svg class="vb2"><use href="#i-seal"/></svg>Verification</a>
-    <a href="/notifications"><svg class="i"><use href="#i-bell"/></svg>Notifications<% if (unread) { %><i class="cnt2"><%= unread %></i><% } %></a>
-    <a href="/discover"><svg class="i"><use href="#i-compass"/></svg>Discover people</a>
-    <a href="/dashboard/qr"><svg class="i"><use href="#i-qr"/></svg>QR code</a>
-    <% if (admin) { %><a href="/admin/verify"><svg class="i"><use href="#i-check"/></svg>Review verifications</a><% } %>
-    <button type="button" data-logout><svg class="i"><use href="#i-out"/></svg>Log out</button>
+    <p class="gh">Product</p>
+    <a href="/how-it-works">How it works</a>
+    <a href="/features">Features</a>
+    <a href="/plans">Plans</a>
+    <a href="/discover">Discover people</a>
+    <a href="/faq">FAQ</a>
+    <p class="gh">Account</p>
+    <% if (user) { %>
+      <a class="golive <%= liveNow ? 'on' : '' %>" href="/publish"><%= liveNow ? 'Your profile is live' : 'Go live' %></a>
+      <a href="/dashboard">Overview</a>
+      <a href="/dashboard/profile">My profile</a>
+      <a href="/verify">Verification</a>
+      <a href="/notifications">Notifications<% if (unread) { %><i class="cnt2"><%= unread %></i><% } %></a>
+      <a href="/dashboard/qr">QR code</a>
+      <% if (admin) { %><a href="/admin">Admin console</a><% } %>
+      <button type="button" data-logout>Log out</button>
+    <% } else { %>
+      <a href="/register">Claim your username</a>
+      <a href="/login">Log in</a>
+    <% } %>
   </nav>
 </aside>
+<% if (user) { %>
+<form id="logoutForm" method="post" action="/logout"><input type="hidden" name="csrf" value="<%= csrf %>"></form>
 <div class="modal lo" data-lo hidden>
   <div class="mc"><h3>Log out?</h3><p>Are you sure you want to log out of CP Global?</p>
     <div class="mb"><button type="button" data-lo-cancel>Cancel</button><button type="button" data-lo-ok>Log out</button></div></div>

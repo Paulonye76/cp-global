@@ -20,15 +20,36 @@
   var o = document.querySelector('[data-onb]');
   if (!o) return;
   var set = function (s) { o.dataset.s = s; };
-  var seen = false;
-  try { seen = sessionStorage.getItem('cpsplash'); } catch (e) {}
-  if (seen) set('welcome');
-  else setTimeout(function () { try { sessionStorage.setItem('cpsplash', '1'); } catch (e) {} set('welcome'); }, 3100);
   var slides = [].slice.call(o.querySelectorAll('.qs'));
   var bar = o.querySelector('.pbar i');
   var i = 0;
-  function show(n) {
-    slides.forEach(function (s, k) { s.classList.toggle('on', k === n); });
+  function ageOf(v) {
+    var d = new Date(v);
+    if (isNaN(d)) return null;
+    var n = new Date(), a = n.getFullYear() - d.getFullYear();
+    if (n < new Date(n.getFullYear(), d.getMonth(), d.getDate())) a--;
+    return a;
+  }
+  function problem(s) {
+    var t = s.dataset.v;
+    if (t === 'dob') {
+      var v = s.querySelector('[name=dob]').value;
+      if (!v) return 'Enter your date of birth.';
+      var a = ageOf(v);
+      if (a === null || a < 0 || a > 120) return 'Enter a valid date of birth.';
+      if (a < 13) return 'You must be 13 or older to use CP Global.';
+    }
+    if (t === 'country' && !s.querySelector('[name=country]').value.trim()) return 'Enter your country to continue.';
+    return '';
+  }
+  function showErr(s, msg) {
+    var ans = s.querySelector('.ans'), e = ans.querySelector('.ferr');
+    if (!msg) { if (e) e.remove(); return; }
+    if (!e) { e = document.createElement('p'); e.className = 'ferr'; ans.insertBefore(e, ans.firstChild); }
+    e.textContent = msg;
+  }
+  function show(n, dir) {
+    slides.forEach(function (s, k) { s.classList.toggle('on', k === n); s.classList.toggle('bk', k === n && dir < 0); });
     i = n;
     var s = slides[n], q = s.querySelector('.q');
     var t = q.dataset.t || (q.dataset.t = q.textContent.trim());
@@ -38,19 +59,53 @@
     [].slice.call(s.querySelector('.ans').children).forEach(function (el, k) { el.style.animationDelay = (base + k * 90) + 'ms'; });
     bar.style.width = ((n + 1) / slides.length * 100) + '%';
   }
-  o.querySelector('[data-ready]').addEventListener('click', function () { set('chat'); show(0); });
-  o.querySelector('[data-back]').addEventListener('click', function () { if (i) show(i - 1); else set('welcome'); });
+  function next() {
+    var s = slides[i], p = problem(s);
+    if (p) { showErr(s, p); return; }
+    showErr(s, '');
+    if (i < slides.length - 1) show(i + 1, 1);
+  }
+  if (o.dataset.s === 'chat') show(parseInt(o.dataset.start, 10) || 0, 1);
+  else {
+    var seen = false;
+    try { seen = sessionStorage.getItem('cpsplash'); } catch (e) {}
+    if (seen) set('welcome');
+    else setTimeout(function () { try { sessionStorage.setItem('cpsplash', '1'); } catch (e) {} set('welcome'); }, 3100);
+  }
+  o.querySelector('[data-ready]').addEventListener('click', function () { set('chat'); show(0, 1); });
+  o.querySelector('[data-back]').addEventListener('click', function () { if (i) show(i - 1, -1); else set('welcome'); });
   o.addEventListener('click', function (e) {
-    if (e.target.closest('[data-next]') && i < slides.length - 1) show(i + 1);
+    if (e.target.closest('[data-next]')) { next(); return; }
+    if (e.target.closest('[data-other-next]')) {
+      var s = slides[i], inp = s.querySelector('[name=category_other]');
+      if (!inp.value.trim()) { showErr(s, 'Tell us what you do.'); return; }
+      showErr(s, ''); show(i + 1, 1);
+    }
+  });
+  o.addEventListener('input', function (e) {
+    if (e.target.name === 'dob') {
+      var a = ageOf(e.target.value), out = o.querySelector('[data-agev]');
+      out.textContent = a === null ? '' : (a < 13 ? 'You must be 13 or older to use CP Global.' : 'You are ' + a + ' years old.');
+      out.className = 'agev' + (a !== null && a < 13 ? ' bad' : '');
+      showErr(slides[i], '');
+    }
+    if (e.target.name === 'country') showErr(slides[i], '');
   });
   o.addEventListener('change', function (e) {
     var s = e.target.closest('.qs');
     if (!s || i >= slides.length - 1) return;
-    if (e.target.type === 'radio' && s.hasAttribute('data-auto')) setTimeout(function () { show(i + 1); }, 300);
-    if (e.target.hasAttribute('data-photo')) setTimeout(function () { show(i + 1); }, 300);
+    if (e.target.type === 'radio') {
+      if (e.target.name === 'category') {
+        var box = s.querySelector('.other-box');
+        if (e.target.value === 'Other') { box.hidden = false; setTimeout(function () { box.querySelector('input').focus(); }, 50); return; }
+        box.hidden = true;
+      }
+      if (s.hasAttribute('data-auto')) setTimeout(function () { show(i + 1, 1); }, 300);
+    }
+    if (e.target.hasAttribute('data-photo')) setTimeout(function () { show(i + 1, 1); }, 300);
   });
   o.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && i < slides.length - 1) { e.preventDefault(); show(i + 1); }
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && i < slides.length - 1) { e.preventDefault(); next(); }
   });
 })();
 
@@ -197,48 +252,66 @@
 })();
 
 (function () {
-  var v = document.querySelector('[data-verify]');
-  if (!v) return;
-  var p1 = v.querySelector('.vp1'), p2 = v.querySelector('.vp2'), p3 = v.querySelector('.vp3');
-  var vid = v.querySelector('video'), q = v.querySelector('.vq'), msg = v.querySelector('.vmsg');
-  var imgs = v.querySelectorAll('.shots img');
-  var shots = [], stream = null;
-  function stop() { if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; } }
-  function grab() {
-    var w = vid.videoWidth || 480, h = vid.videoHeight || 480, s = Math.min(1, 480 / Math.max(w, h));
-    var c = document.createElement('canvas');
-    c.width = Math.round(w * s); c.height = Math.round(h * s);
-    var x = c.getContext('2d');
-    x.translate(c.width, 0); x.scale(-1, 1);
-    x.drawImage(vid, 0, 0, c.width, c.height);
-    return c.toDataURL('image/jpeg', 0.8);
+  var edit = document.querySelector('.edit');
+  if (edit) {
+    var csrf = edit.dataset.csrf;
+    var sh = document.querySelector('[data-sheet]'), sc = document.querySelector('[data-sheet-scrim]');
+    var f = sh.querySelector('form'), fld = f.querySelector('[name=field]'), st = sh.querySelector('[data-st]');
+    var body = sh.querySelector('[data-sf]'), hint = sh.querySelector('[data-sh]'), save = sh.querySelector('[data-save]');
+    var pm = document.querySelector('[data-pmodal]'), pf = document.querySelector('[data-photo-file]');
+    var closeSheet = function () { sh.classList.remove('open'); sc.classList.remove('open'); };
+    var openSheet = function (row) {
+      var d = row.dataset, el;
+      fld.value = d.edit; st.textContent = d.label;
+      hint.textContent = d.locked || d.hint || '';
+      body.innerHTML = '';
+      if (d.type === 'textarea') { el = document.createElement('textarea'); el.rows = 4; }
+      else if (d.type === 'select') {
+        el = document.createElement('select');
+        JSON.parse(d.options).forEach(function (o) { var op = document.createElement('option'); op.textContent = o; if (o === d.value) op.selected = true; el.appendChild(op); });
+      } else { el = document.createElement('input'); el.type = d.type || 'text'; }
+      el.name = 'value'; el.className = 'big-in2';
+      if (d.type !== 'select') el.value = d.value || '';
+      if (+d.max) el.maxLength = +d.max;
+      if (d.locked) { el.disabled = true; save.hidden = true; } else save.hidden = false;
+      body.appendChild(el);
+      if (d.edit === 'category') {
+        var ot = document.createElement('input');
+        ot.name = 'other'; ot.className = 'big-in2'; ot.maxLength = 40; ot.placeholder = 'Tell us what you do'; ot.value = d.other || '';
+        var tog = function () { ot.hidden = el.value !== 'Other'; };
+        el.addEventListener('change', tog); tog();
+        body.appendChild(ot);
+      }
+      sh.classList.add('open'); sc.classList.add('open');
+      if (!d.locked && d.type !== 'date' && d.type !== 'select') setTimeout(function () { el.focus(); }, 380);
+    };
+    document.addEventListener('click', function (e) {
+      var r = e.target.closest('[data-edit]');
+      if (r) { openSheet(r); return; }
+      if (e.target.closest('[data-sheet-close]') || e.target === sc) { closeSheet(); return; }
+      if (e.target.closest('[data-photo-warn]')) { pm.hidden = false; return; }
+      if (e.target.closest('[data-pm-cancel]') || e.target === pm) { pm.hidden = true; return; }
+      if (e.target.closest('[data-pm-ok]')) { pm.hidden = true; pf.click(); return; }
+      var c = e.target.closest('[data-copy]');
+      if (c && navigator.clipboard) navigator.clipboard.writeText(c.dataset.copy);
+    });
+    pf.addEventListener('change', function () { if (pf.files.length) document.getElementById('photoForm').submit(); });
+    document.querySelectorAll('[data-toggle]').forEach(function (t) {
+      t.addEventListener('change', function () {
+        fetch('/api/toggle', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf': csrf }, body: 'field=' + t.dataset.toggle + '&on=' + (t.checked ? 1 : 0) }).catch(function () {});
+      });
+    });
   }
-  function start() {
-    msg.textContent = '';
-    shots = [];
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { msg.textContent = 'Your browser cannot open the camera here.'; return; }
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }).then(function (s) {
-      stream = s; vid.srcObject = s;
-      p1.hidden = true; p3.hidden = true; p2.hidden = false;
-      q.textContent = 'Look straight at the camera';
-    }).catch(function () { msg.textContent = 'Allow camera access in your browser settings, then try again.'; });
-  }
-  v.addEventListener('click', function (e) {
-    if (e.target.closest('[data-start]') || e.target.closest('[data-retake]')) { start(); return; }
-    if (e.target.closest('[data-snap]')) {
-      shots.push(grab());
-      if (shots.length === 1) { q.textContent = v.dataset.prompt; return; }
-      stop();
-      imgs[0].src = shots[0]; imgs[1].src = shots[1];
-      p2.hidden = true; p3.hidden = false;
-      return;
-    }
-    if (e.target.closest('[data-send]')) {
-      msg.textContent = 'Sending...';
-      fetch('/verify/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf': v.dataset.csrf }, body: JSON.stringify({ a: shots[0], b: shots[1], prompt: v.dataset.prompt }) })
-        .then(function (r) { return r.json(); })
-        .then(function (d) { if (d.ok) location.href = '/notifications'; else msg.textContent = 'Could not send. Try again.'; })
-        .catch(function () { msg.textContent = 'Could not send. Try again.'; });
-    }
+  document.addEventListener('submit', function (e) {
+    var b = e.submitter, m = b && b.dataset && b.dataset.confirm;
+    if (m && !window.confirm(m)) e.preventDefault();
   });
+})();
+
+(function () {
+  var cs = document.querySelector('select[data-cat]'), ob = document.querySelector('[data-other]');
+  if (!cs || !ob) return;
+  var up = function () { ob.hidden = cs.value !== 'Other'; };
+  cs.addEventListener('change', up);
+  up();
 })();

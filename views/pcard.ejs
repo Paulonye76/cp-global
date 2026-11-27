@@ -1,0 +1,8 @@
+<a class="pcd" href="/<%= x.username %>">
+  <% if (x.photo) { %><img class="avatar" src="/photo/<%= x.username %>" alt=""><% } else { %><svg class="av pav" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><% } %>
+  <b><%= x.name || '@' + x.username %><% if (x.verified) { %><svg class="vb"><use href="#i-seal"/></svg><% } %></b>
+  <small><%= x.name ? '@' + x.username : '' %></small>
+  <% if (x.category) { %><span class="cat"><%= x.category %></span><% } %>
+  <% if (x.place) { %><em><%= x.place %></em><% } %>
+  <i class="vp">View profile</i>
+</a>

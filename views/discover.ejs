@@ -1,4 +1,5 @@
-<%- include('head', { title: 'Discover people | CP Global', desc: 'Find people on CP Global by name, username, profession or location.', canonical: base + '/discover', page: user ? 'app' : '', back: user ? '/dashboard' : '/' }) %>
+<%- include('head', { title: 'Discover people | CP Global', desc: 'Find people on CP Global by name, username, profession or location.', canonical: base + '/discover', page: user ? 'app' : 'info', back: user ? '/dashboard' : '/', strict: !!user }) %>
+<% var feat = searching ? [] : list.filter(function (x) { return x.featured; }); var rest = searching ? list : list.filter(function (x) { return !x.featured; }); %>
 <section class="disc">
   <h1>Discover <span class="g">people.</span></h1>
   <p class="lead">Search by name, username, profession or location.</p>
@@ -10,22 +11,12 @@
       <button class="btn">Search</button>
     </div>
   </form>
+  <% if (feat.length) { %><h2 class="dh">Featured profiles</h2><div class="pgrid"><% feat.forEach(function (x) { %><%- include('pcard', { x: x }) %><% }) %></div><% } %>
   <h2 class="dh"><%= searching ? 'Results' : 'Popular profiles' %></h2>
-  <% if (!list.length) { %>
+  <% if (!rest.length && !feat.length) { %>
     <div class="card2 empty"><h3><%= searching ? 'No one matches that yet.' : 'No live profiles yet.' %></h3><p class="hint">Be the first to be found.</p><a class="btn" href="/register">Start for free</a></div>
-  <% } else { %>
-    <div class="pgrid">
-      <% list.forEach(function (x) { %>
-      <a class="pcd" href="/<%= x.username %>">
-        <% if (x.photo) { %><img class="avatar" src="/photo/<%= x.username %>" alt=""><% } else { %><svg class="av pav" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><% } %>
-        <b><%= x.name || '@' + x.username %><% if (x.verified) { %><svg class="vb"><use href="#i-seal"/></svg><% } %></b>
-        <small><%= x.name ? '@' + x.username : '' %></small>
-        <% if (x.category) { %><span class="cat"><%= x.category %></span><% } %>
-        <% if (x.place) { %><em><%= x.place %></em><% } %>
-        <i class="vp">View profile</i>
-      </a>
-      <% }) %>
-    </div>
+  <% } else if (rest.length) { %>
+    <div class="pgrid"><% rest.forEach(function (x) { %><%- include('pcard', { x: x }) %><% }) %></div>
   <% } %>
 </section>
 <%- include('foot') %>

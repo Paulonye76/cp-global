@@ -1,0 +1,18 @@
+<%- include('head', { title: 'Settings | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
+<section class="dash adm">
+  <div class="hello"><h1>Site settings</h1><p>Control the whole site from here.</p></div>
+  <%- include('admin-nav', { tab: 's' }) %>
+  <% if (msg) { %><p class="ok"><%= msg %></p><% } %>
+  <form method="post" action="/admin/settings" class="sws">
+    <input type="hidden" name="csrf" value="<%= csrf %>">
+    <div class="card2 form"><div class="sh"><svg class="i"><use href="#i-bell"/></svg><div><h3>Announcement banner</h3><p>Shown at the top of every page. Leave empty to hide.</p></div></div>
+      <label>Message<input name="announcement" maxlength="200" value="<%= s.announcement %>"></label></div>
+    <div class="card2 form"><div class="sh"><svg class="i"><use href="#i-shield"/></svg><div><h3>Plans and trial</h3><p>How new pages go live.</p></div></div>
+      <label>Free trial length (days)<input type="number" name="trialDays" min="1" max="30" value="<%= s.trialDays %>"></label>
+      <label class="check"><input type="checkbox" name="openTiers" <%= s.openTiers ? 'checked' : '' %>> Let every tier go live free (preview)</label></div>
+    <div class="card2 form"><div class="sh"><svg class="i"><use href="#i-user"/></svg><div><h3>Sign-ups</h3><p>Turn new registrations on or off.</p></div></div>
+      <label class="check"><input type="checkbox" name="signupsOpen" <%= s.signupsOpen ? 'checked' : '' %>> Sign-ups are open</label></div>
+    <button class="btn big">Save settings</button>
+  </form>
+</section>
+<%- include('foot') %>

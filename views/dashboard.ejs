@@ -1,7 +1,7 @@
 <%- include('head', { title: 'Dashboard | CP Global', noindex: true, page: 'app' }) %>
 <% var items = [['Full name', !!p.full_name], ['Country', !!p.country], ['Date of birth', !!p.dob], ['What you do', !!p.category], ['Photo', p.has_photo]];
    var pct = Math.round(items.filter(function (x) { return x[1]; }).length / items.length * 100);
-   var paused = !live && p.trial_used;
+   var paused = !live && p.trial_used && !p.unpublished;
    var url = base + '/' + p.username;
    var title = '@' + p.username + (p.show_name ? ' | ' + p.full_name : '') + ' | CP Global';
    var vs = p.verify_status || 'none'; %>
@@ -13,7 +13,10 @@
     <div class="ringp" style="--p:<%= pct %>"><b><%= pct %>%</b><span>complete</span></div>
     <div class="h2c">
       <% if (live) { %><h2>You are live on Google</h2><p><%= daysLeft !== null ? 'Free trial ends in ' + daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + '.' : 'Your page is public.' %></p>
-        <a class="btn" href="/<%= p.username %>">View my page</a> <a class="btn alt" href="/publish">Change plan</a>
+        <a class="btn" href="/<%= p.username %>">View my page</a> <a class="btn alt" href="/publish/plans">Change plan</a>
+        <form class="inl" method="post" action="/profile/offline"><input type="hidden" name="csrf" value="<%= csrf %>"><button class="btn ghost">Take it offline</button></form>
+      <% } else if (p.unpublished) { %><h2>Your page is hidden</h2><p>It is not on Google right now.</p>
+        <form class="inl" method="post" action="/profile/online"><input type="hidden" name="csrf" value="<%= csrf %>"><button class="btn">Make it live again</button></form> <a class="btn ghost" href="/publish/plans">Change plan</a>
       <% } else if (paused) { %><h2>Your page is paused</h2><p>Choose a plan to go live again.</p><a class="btn" href="/publish">Choose a plan</a>
       <% } else { %><h2>Make your profile live on Google</h2><p>Choose a plan, check your details and publish. Your first 3 days are free.</p><a class="btn shine" href="/publish">Make it live</a><% } %>
     </div>
@@ -32,13 +35,13 @@
   <div class="g2">
     <div class="card2 pc">
       <% if (p.has_photo) { %><img class="avatar big2" src="/photo/<%= p.username %>" alt="Your photo"><% } else { %><svg class="av big2" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><% } %>
-      <div><h3><%= p.full_name %><% if (vs === 'verified') { %><svg class="vb"><use href="#i-seal"/></svg><% } %></h3><p class="hint">@<%= p.username %><%= p.category ? ' | ' + p.category : '' %></p>
+      <div><h3><%= p.full_name %><% if (vs === 'verified') { %><svg class="vb"><use href="#i-seal"/></svg><% } %></h3><p class="hint">@<%= p.username %><%= p.category_label ? ' | ' + p.category_label : '' %></p>
         <a class="btn alt small" href="/dashboard/profile"><svg class="i"><use href="#i-edit"/></svg> Edit profile</a></div>
     </div>
     <div class="card2">
       <h3>Google visibility</h3>
       <p class="vis <%= live ? 'ok1' : '' %>"><%= live ? 'Your page is public and ready for Google.' : 'Your page is not public, so Google cannot show it.' %></p>
-      <div class="serp2"><small><%= url.replace(/^https?:\/\//, '') %></small><b><%= title %></b><p><%= (p.tier >= 2 && p.bio) ? p.bio : p.full_name + ' on CP Global. Find @' + p.username + ' first.' %></p></div>
+      <div class="serp2"><small><%= url.replace(/^https?:\/\//, '') %></small><b><%= title %></b><p><%= p.bio ? p.bio : p.full_name + ' on CP Global. Find @' + p.username + ' first.' %></p></div>
       <a class="btn alt small" target="_blank" rel="noopener" href="https://www.google.com/search?q=<%= encodeURIComponent('@' + p.username) %>">Search it on Google</a>
       <p class="hint">Google finds new pages through our sitemap. This can take a few days.</p>
     </div>
@@ -55,7 +58,7 @@
       <a href="/dashboard/profile"><svg class="i"><use href="#i-edit"/></svg>Edit profile</a>
       <button type="button" data-share data-url="<%= url %>" data-title="<%= title %>" data-csrf="<%= csrf %>"><svg class="i"><use href="#i-share"/></svg><span>Share page</span></button>
       <a href="/dashboard/qr"><svg class="i"><use href="#i-qr"/></svg>QR code</a>
-      <a href="/publish"><svg class="i"><use href="#i-shield"/></svg>Change plan</a>
+      <a href="/publish/plans"><svg class="i"><use href="#i-shield"/></svg>Change plan</a>
       <a href="/discover"><svg class="i"><use href="#i-compass"/></svg>Discover</a>
       <a href="/<%= p.username %>"><svg class="i"><use href="#i-eye"/></svg>My page</a>
     </div>

@@ -1,50 +1,39 @@
 <%- include('head', { title: 'Go live | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
 <% var TIERS = [
-  ['1', 'Tier 1', 'Identity', 'Free for 3 days', ['Photo and name', 'Country and optional age', 'Public or hidden switches', 'QR card']],
+  ['1', 'Tier 1', 'Identity', 'Free for 3 days', ['Photo and name', 'Country and optional age', '20-character bio', 'Public or hidden switches', 'QR card']],
   ['2', 'Tier 2', 'Short intro', open ? 'Free preview' : 'Coming soon', ['Everything in Tier 1', '150-character bio', 'Profession tag']],
   ['3', 'Tier 3', 'Full profile', open ? 'Free preview' : 'Coming soon', ['Everything in Tier 2', '1000-character bio', 'Achievements and links', 'Email and contact']]
-]; var cur = String(p.tier || 1); %>
+]; %>
 <section class="dash">
-  <div class="hello"><h1>Make your profile <span class="g">live</span></h1><p>Pick a plan. Your details are filled in. Check them and publish.</p></div>
   <% if (msg) { %><p class="ok"><%= msg %></p><% } %>
-  <form method="post" action="/publish" class="pf sws" data-tier="<%= cur %>">
-    <input type="hidden" name="csrf" value="<%= csrf %>">
+  <% if (live && !plans) { %>
+    <div class="card2 vdone livec">
+      <div class="liveic"><svg class="i"><use href="#i-check"/></svg></div>
+      <h2>Your profile is live</h2>
+      <p class="hint">@<%= p.username %> is public on Google. Google can take a few days to show it.</p>
+      <a class="btn big" href="/<%= p.username %>">View profile</a>
+      <a class="btn ghost big" href="/publish/plans">Change plan</a>
+      <form method="post" action="/profile/offline"><input type="hidden" name="csrf" value="<%= csrf %>"><button class="btn ghost big">Take it offline</button></form>
+    </div>
+  <% } else if (p.unpublished && !plans) { %>
+    <div class="card2 vdone livec">
+      <h2>Your profile is hidden</h2>
+      <p class="hint">It is not on Google right now. You can turn it back on any time.</p>
+      <form method="post" action="/profile/online"><input type="hidden" name="csrf" value="<%= csrf %>"><button class="btn big">Make it live again</button></form>
+      <a class="btn ghost big" href="/publish/plans">Change plan</a>
+    </div>
+  <% } else { %>
+    <div class="hello"><h1>Make your profile <span class="g">live</span></h1><p>Choose a plan. Each plan has its own page.</p></div>
     <div class="tcs">
       <% TIERS.forEach(function (t) { %>
-      <label class="tc"><input type="radio" name="tier" value="<%= t[0] %>" <%= cur === t[0] ? 'checked' : '' %>>
-        <span class="tcb"><% if (t[0] === '3') { %><span class="rib">Most complete</span><% } %>
-          <span class="tt"><b><%= t[1] %></b><i class="tk"><svg class="i"><use href="#i-check"/></svg></i></span>
-          <em><%= t[2] %></em><strong class="pr"><%= t[3] %></strong>
-          <ul><% t[4].forEach(function (f) { %><li><svg class="i"><use href="#i-check"/></svg><%= f %></li><% }) %></ul>
-        </span></label>
+      <div class="tcb plc"><% if (t[0] === '3') { %><span class="rib">Most complete</span><% } %>
+        <span class="tt"><b><%= t[1] %></b></span>
+        <em><%= t[2] %></em><strong class="pr"><%= t[3] %></strong>
+        <ul><% t[4].forEach(function (f) { %><li><svg class="i"><use href="#i-check"/></svg><%= f %></li><% }) %></ul>
+        <a class="btn big" href="/publish/<%= t[0] %>">Choose <%= t[1] %></a>
+      </div>
       <% }) %>
     </div>
-
-    <div class="card2 form"><div class="sh"><svg class="i"><use href="#i-user"/></svg><div><h3>Your details</h3><p>Who you are on Google.</p></div></div>
-      <label>Full name<input name="full_name" maxlength="60" required value="<%= p.full_name %>"></label>
-      <label class="check"><input type="checkbox" name="show_name" <%= p.show_name ? 'checked' : '' %>> Show my name on Google</label>
-      <label>Country<input name="country" maxlength="56" value="<%= p.country || '' %>"></label>
-      <label class="check"><input type="checkbox" name="show_country" <%= p.show_country ? 'checked' : '' %>> Show my country on Google</label>
-      <label>What you do<select name="category"><% CATS.forEach(function (c) { %><option <%= p.category === c ? 'selected' : '' %>><%= c %></option><% }) %></select></label>
-      <% if (p.dob) { %><label class="check"><input type="checkbox" name="show_age" <%= p.show_age ? 'checked' : '' %>> Show my age on Google</label><% } %>
-      <label class="check"><input type="checkbox" name="show_photo" <%= p.show_photo ? 'checked' : '' %>> Show my photo on Google (<%= p.verify_status === 'verified' ? 'verified' : 'needs verification' %>)</label>
-    </div>
-
-    <div class="card2 form t2"><div class="sh"><svg class="i"><use href="#i-edit"/></svg><div><h3>Short intro</h3><p>The line people read first.</p></div></div>
-      <label>Bio<textarea name="bio" maxlength="150" rows="3" placeholder="Who you are in one sentence"><%= p.bio || '' %></textarea></label>
-    </div>
-
-    <div class="card2 form t3"><div class="sh"><svg class="i"><use href="#i-share"/></svg><div><h3>Full profile</h3><p>Your story, links and contact.</p></div></div>
-      <label>Professional biography<textarea name="bio_long" maxlength="1000" rows="6"><%= p.bio_long || '' %></textarea></label>
-      <label>Achievements (one per line, up to 6)<textarea name="achievements" maxlength="700" rows="4"><%= p.achievements || '' %></textarea></label>
-      <% for (var k = 0; k < 3; k++) { %><label>Link <%= k + 1 %><input name="link<%= k + 1 %>" type="url" maxlength="200" placeholder="https://" value="<%= (p.links && p.links[k]) || '' %>"></label><% } %>
-      <label>Public email<input type="email" name="public_email" maxlength="120" value="<%= p.public_email || '' %>"></label>
-      <label>Contact address<input name="contact_address" maxlength="200" value="<%= p.contact_address || '' %>"></label>
-      <label class="check"><input type="checkbox" name="show_contact" <%= p.show_contact ? 'checked' : '' %>> Show email and address on my page</label>
-    </div>
-
-    <% if (!open) { %><p class="hint t2">Paid plans open soon. You can save these details now. Tier 1 can go live free today.</p><% } %>
-    <div class="pbar2"><div><small>Selected plan</small><b data-tn>Tier <%= cur %></b></div><button class="btn">Publish my profile</button></div>
-  </form>
+  <% } %>
 </section>
 <%- include('foot') %>

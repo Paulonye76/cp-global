@@ -17,16 +17,19 @@ const TRIAL_DAYS = 3;
 const VERSION = process.env.RENDER_GIT_COMMIT || String(Date.now());
 
 const RESERVED = new Set(['admin', 'support', 'login', 'logout', 'register', 'dashboard', 'api', 'photo', 'qr',
-  'sitemap', 'robots', 'about', 'terms', 'privacy', 'pricing', 'help', 'static', 'public', 'cpglobal', 'cp_global']);
+  'sitemap', 'robots', 'about', 'terms', 'privacy', 'pricing', 'help', 'static', 'public', 'cpglobal', 'cp_global', 'discover', 'notifications', 'verify', 'publish', 'welcome', 'features', 'plans', 'faq', 'how', 'auth', 'cpadmin']);
 const USERNAME_RE = /^(?!.*\.\.)[a-z0-9_][a-z0-9._]{1,18}[a-z0-9_]$/;
 const CATS = ['Creator', 'Professional', 'Business owner', 'Student', 'Artist', 'Other'];
 const GOALS = ['Be found on Google', 'Share my work', 'Build my brand', 'Network', 'Just exploring'];
 const SOURCES = ['TikTok', 'Instagram', 'Friend or family', 'Google', 'Other'];
 const OPEN_TIERS = process.env.OPEN_TIERS === '1';
+const tiersOpen = () => OPEN_TIERS || store.settings().openTiers;
 const GID = process.env.GOOGLE_CLIENT_ID;
 const GSEC = process.env.GOOGLE_CLIENT_SECRET;
 const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
 const pick = (v, list) => list.includes(v) ? v : null;
+const LINK_RE = /(https?:|www\.|\b[a-z0-9-]+\.(com|net|org|io|co|me|ng|app|dev|ly|link|site|xyz|info|biz|tv|gg|ai|store|online|shop)\b|@[a-z0-9._-]+\.[a-z]{2,})/i;
+const hasLink = (t) => LINK_RE.test(String(t || ''));
 function cleanUrl(u) {
   u = String(u || '').trim().slice(0, 200);
   if (!u) return null;
@@ -39,6 +42,7 @@ function usernameError(u) {
   return null;
 }
 function isLive(p) {
+  if (p.suspended || p.unpublished) return false;
   const now = Date.now();
   if (p.status === 'active') return p.paid_until && new Date(p.paid_until).getTime() > now;
   return p.status === 'trial' && new Date(p.trial_ends_at).getTime() > now;
@@ -60,7 +64,17 @@ function sniffImage(buf) {
 const app = express();
 app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: Object.assign({}, helmet.contentSecurityPolicy.getDefaultDirectives(), {
+      'script-src': ["'self'", 'https://cdn.jsdelivr.net', "'wasm-unsafe-eval'"],
+      'connect-src': ["'self'", 'https://cdn.jsdelivr.net', 'https://storage.googleapis.com'],
+      'worker-src': ["'self'", 'blob:'],
+      'img-src': ["'self'", 'data:', 'blob:'],
+      'media-src': ["'self'", 'blob:']
+    })
+  }
+}));
 app.use(express.urlencoded({ extended: false, limit: '20kb' }));
 app.use(cookieParser());
 app.use(express.static('public', { maxAge: '1h' }));
@@ -74,6 +88,8 @@ app.use((req, res, next) => {
   res.locals.csrf = '';
   res.locals.unread = 0;
   res.locals.admin = false;
+  res.locals.liveNow = false;
+  res.locals.announce = store.settings().announcement || '';
   res.locals.base = BASE;
   res.locals.v = VERSION;
   res.set('Cache-Control', 'no-cache');
@@ -88,6 +104,8 @@ app.use((req, res, next) => {
       const me = store.userById(d.id);
       req.admin = !!(me && ADMIN_EMAIL && me.email === ADMIN_EMAIL);
       res.locals.admin = req.admin;
+      const pr = store.profileByUserId(d.id);
+      res.locals.liveNow = !!(pr && isLive(pr));
     }
   } catch (e) { res.clearCookie('cp'); }
   next();
@@ -133,6 +151,7 @@ app.post('/register', authLimit, async (req, res) => {
     country: String(b.country || '').trim().slice(0, 56)
   };
   const fail = (error, start, stage) => res.status(400).render('auth', { mode: 'signup', error, v, start: start || 0, stage: stage || 'email', name: '', email: '' });
+  if (!store.settings().signupsOpen) return fail('Sign-ups are paused right now. Please check back soon.', 0, 'home');
   const uerr = usernameError(v.username);
   if (uerr) return fail(uerr, 2);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) return fail('Enter a valid email.', 0);
@@ -159,7 +178,7 @@ app.post('/login', authLimit, async (req, res) => {
   const ok = u && await bcrypt.compare(String(req.body.password || ''), u.password_hash);
   if (!ok) return res.status(401).render('auth', { mode: 'login', error: 'Email or password is wrong.', v: { email }, start: 1, stage: 'email', name: '', email: '' });
   startSession(res, u.id);
-  res.redirect('/dashboard');
+  res.redirect(u.email === ADMIN_EMAIL ? '/admin' : '/dashboard');
 });
 
 app.post('/logout', requireAuth, checkCsrf, (req, res) => { res.clearCookie('cp'); res.redirect('/'); });
@@ -181,7 +200,7 @@ app.post('/dashboard', requireAuth, checkCsrf, async (req, res) => {
   let dob = String(b.dob || '').trim() || null;
   const back = async (error) => {
     const p = myProfile(req.user.id);
-    res.status(400).render('profile-edit', { p, msg: null, error });
+    res.status(400).render('profile-edit', { p, msg: null, error, unlock: '', CATS });
   };
   if (!full) return back('Name cannot be empty.');
   if (dob) {
@@ -276,14 +295,16 @@ app.get('/discover', (req, res) => {
   let list = store.allProfiles().filter(isLive).map(p => ({
     username: p.username,
     name: p.show_name && p.full_name ? p.full_name : null,
-    category: p.tier >= 2 ? p.category : null,
+    category: p.tier >= 2 ? p.category_label : null,
+    catKey: p.tier >= 2 ? p.category : null,
     place: p.show_country ? [p.city, p.country].filter(Boolean).join(', ') : '',
     photo: !!(p.photo_verified && p.show_photo && p.has_photo),
     views: p.views || 0,
+    featured: !!p.featured,
     verified: p.verify_status === 'verified'
   }));
   if (q) list = list.filter(x => x.username.includes(q) || (x.name && x.name.toLowerCase().includes(q)) || (x.category && x.category.toLowerCase().includes(q)));
-  if (cat) list = list.filter(x => x.category === cat);
+  if (cat) list = list.filter(x => x.catKey === cat);
   if (loc) list = list.filter(x => x.place.toLowerCase().includes(loc));
   list.sort((a, b) => b.views - a.views);
   res.render('discover', { list: list.slice(0, 24), q: String(req.query.q || '').slice(0, 60), cat: cat || '', loc: String(req.query.loc || '').slice(0, 60), CATS, searching: !!(q || cat || loc) });
@@ -304,8 +325,63 @@ function requireAdmin(req, res, next) {
 app.get('/dashboard/profile', requireAuth, (req, res) => {
   const p = myProfile(req.user.id);
   if (!p) return res.redirect('/login');
-  res.render('profile-edit', { p, msg: req.query.m || null, error: null });
+  const last = p.username_changed_at ? Date.parse(p.username_changed_at) : 0;
+  const locked = (p.username_changes || 0) >= 2 && Date.now() - last < 30 * 864e5;
+  const unlock = locked ? new Date(last + 30 * 864e5).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  res.render('profile-edit', { p, msg: req.query.m || null, error: null, unlock, CATS });
 });
+
+app.post('/dashboard/field', requireAuth, checkCsrf, (req, res) => {
+  const p = myProfile(req.user.id);
+  if (!p) return res.redirect('/login');
+  const id = req.user.id;
+  const f = String(req.body.field || '');
+  const v = String(req.body.value || '').trim();
+  const back = (m) => res.redirect('/dashboard/profile?m=' + encodeURIComponent(m));
+  if (f === 'full_name') {
+    if (!v) return back('Name cannot be empty.');
+    store.updateProfile(id, { full_name: v.slice(0, 60) });
+  } else if (f === 'username') {
+    const u = v.toLowerCase();
+    if (u === p.username) return back('That is already your username.');
+    const e = usernameError(u);
+    if (e) return back(e);
+    const last = p.username_changed_at ? Date.parse(p.username_changed_at) : 0;
+    const n = p.username_changes || 0;
+    if (n >= 2 && Date.now() - last < 30 * 864e5) return back('You can change your username again on ' + new Date(last + 30 * 864e5).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '.');
+    if (store.profileByUsername(u)) return back('That username is taken.');
+    store.updateProfile(id, { username: u, username_changes: n >= 2 ? 1 : n + 1, username_changed_at: new Date().toISOString() });
+  } else if (f === 'country') store.updateProfile(id, { country: v.slice(0, 56) || null });
+  else if (f === 'city') store.updateProfile(id, { city: v.slice(0, 60) || null });
+  else if (f === 'category') {
+    const c = pick(v, CATS);
+    if (!c) return back('Choose a profession.');
+    const o = String(req.body.other || '').trim().slice(0, 40);
+    if (c === 'Other' && !o) return back('Tell us what you do.');
+    store.updateProfile(id, { category: c, category_other: c === 'Other' ? o : '' });
+  } else if (f === 'bio') {
+    const t = v.slice(0, (p.tier || 1) === 1 ? 20 : 150);
+    if (hasLink(t)) return back('Links are not allowed in your bio.');
+    store.updateProfile(id, { bio: t });
+  }
+  else if (f === 'links') store.updateProfile(id, { links: v.split('\n').map(cleanUrl).filter(Boolean).slice(0, 3) });
+  else if (f === 'dob') {
+    const d = v || null;
+    if (d) { const a = ageOf(d); if (isNaN(new Date(d)) || a === null || a < 13 || a > 120) return back('Enter a valid date. You must be 13 or older.'); }
+    store.updateProfile(id, {}, d);
+  } else return back('Something went wrong.');
+  back('Saved');
+});
+
+app.post('/api/toggle', requireAuth, (req, res) => {
+  if (req.get('x-csrf') !== req.user.c) return res.sendStatus(403);
+  const f = String(req.body.field || '');
+  if (['show_name', 'show_country', 'show_age', 'show_photo'].indexOf(f) < 0) return res.sendStatus(400);
+  store.updateProfile(req.user.id, { [f]: req.body.on === '1' });
+  res.json({ ok: true });
+});
+
+['how-it-works', 'features', 'plans', 'faq'].forEach(n => app.get('/' + n, (req, res) => res.render(n === 'how-it-works' ? 'how' : n)));
 
 app.get('/dashboard/qr', requireAuth, (req, res) => {
   const p = myProfile(req.user.id);
@@ -319,7 +395,7 @@ app.get('/notifications', requireAuth, (req, res) => {
   res.render('notifications', { list });
 });
 
-const PROMPTS = ['Turn your head slightly to the left', 'Turn your head slightly to the right', 'Smile with your teeth showing', 'Look up at the ceiling'];
+const PROMPTS = ['left', 'right', 'smile'];
 
 app.get('/verify', requireAuth, (req, res) => {
   const p = myProfile(req.user.id);
@@ -343,6 +419,89 @@ app.post('/verify/submit', requireAuth, express.json({ limit: '2mb' }), (req, re
   store.updateProfile(req.user.id, { verify_status: 'pending', verify_prompt: String(req.body.prompt || '').slice(0, 80), verify_note: '' });
   store.notify(req.user.id, 'verify', { title: 'Verification under review', body: 'We review each request by hand. You will get a message here when it is done.' });
   res.json({ ok: true });
+});
+
+function tally(list, f) {
+  const m = {};
+  list.forEach(p => { const k = f(p); if (k) m[k] = (m[k] || 0) + 1; });
+  return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6);
+}
+
+app.get('/admin', requireAdmin, (req, res) => {
+  const users = store.allUsers();
+  const ps = store.allProfiles();
+  const sum = (k) => ps.reduce((t, p) => t + (p[k] || 0), 0);
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 864e5);
+    const key = d.toISOString().slice(0, 10);
+    days.push({ l: d.toLocaleDateString('en-GB', { weekday: 'short' }), n: users.filter(u => String(u.created_at).slice(0, 10) === key).length });
+  }
+  const live = ps.filter(isLive);
+  const s = {
+    total: ps.length, live: live.length,
+    verified: ps.filter(p => p.verify_status === 'verified').length,
+    pending: ps.filter(p => p.verify_status === 'pending').length,
+    views: sum('views'), shares: sum('shares'),
+    funnel: [['Registered', ps.length], ['Finished onboarding', ps.filter(p => p.onboarded).length], ['Published a page', ps.filter(p => p.trial_used || p.status === 'active').length], ['Verified', ps.filter(p => p.verify_status === 'verified').length], ['Live right now', live.length]],
+    days,
+    sources: tally(ps, p => p.source), cats: tally(ps, p => p.category_label), countries: tally(ps, p => p.country),
+    tiers: tally(live, p => 'Tier ' + (p.tier || 1)),
+    top: ps.slice().sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5).filter(p => p.views).map(p => ({ username: p.username, views: p.views }))
+  };
+  res.render('admin', { s });
+});
+
+app.get('/admin/users', requireAdmin, (req, res) => {
+  const q = String(req.query.q || '').trim().toLowerCase().slice(0, 60);
+  let list = store.allUsers();
+  if (q) list = list.filter(u => (u.username + ' ' + u.email + ' ' + u.full_name).toLowerCase().includes(q));
+  list.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  res.render('admin-users', { list: list.slice(0, 100), q, ADMIN_EMAIL, live: isLive, msg: req.query.m || null });
+});
+
+app.post('/admin/users/:id', requireAdmin, checkCsrf, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const p = store.profileByUserId(id);
+  const u = store.userById(id);
+  const back = '/admin/users?q=' + encodeURIComponent(String(req.body.q || ''));
+  if (!p || !u || u.email === ADMIN_EMAIL) return res.redirect(back);
+  const a = req.body.action;
+  if (a === 'suspend') { store.updateProfile(id, { suspended: true }); store.notify(id, 'admin', { title: 'Your page is hidden', body: 'An administrator hid your page. Contact us if you think this is a mistake.' }); }
+  else if (a === 'unsuspend') { store.updateProfile(id, { suspended: false }); store.notify(id, 'admin', { title: 'Your page is visible again', body: 'An administrator restored your page.' }); }
+  else if (a === 'feature') store.updateProfile(id, { featured: true });
+  else if (a === 'unfeature') store.updateProfile(id, { featured: false });
+  else if (a === 'verify') { store.updateProfile(id, { verify_status: 'verified', verified_at: new Date().toISOString(), photo_verified: true }); store.notify(id, 'verify', { title: 'You are verified', body: 'Your profile now carries the CP Global verified badge.', label: 'View my profile', url: '/' + p.username }); }
+  else if (a === 'unverify') store.updateProfile(id, { verify_status: 'none', verified_at: null, photo_verified: false });
+  else if (a === 'delete') store.deleteUser(id);
+  res.redirect(back);
+});
+
+app.get('/admin/settings', requireAdmin, (req, res) => res.render('admin-settings', { s: store.settings(), msg: req.query.m || null }));
+
+app.post('/admin/settings', requireAdmin, checkCsrf, (req, res) => {
+  const b = req.body;
+  store.setSettings({
+    announcement: String(b.announcement || '').trim().slice(0, 200),
+    trialDays: Math.min(30, Math.max(1, parseInt(b.trialDays, 10) || 3)),
+    openTiers: b.openTiers === 'on', signupsOpen: b.signupsOpen === 'on'
+  });
+  res.redirect('/admin/settings?m=Saved');
+});
+
+app.get('/admin/broadcast', requireAdmin, (req, res) => res.render('admin-broadcast', { msg: req.query.m || null }));
+
+app.post('/admin/broadcast', requireAdmin, checkCsrf, (req, res) => {
+  const title = String(req.body.title || '').trim().slice(0, 80);
+  const body = String(req.body.body || '').trim().slice(0, 300);
+  if (!title) return res.redirect('/admin/broadcast?m=' + encodeURIComponent('Add a title.'));
+  let url = String(req.body.url || '').trim();
+  if (!/^\/[A-Za-z0-9\/_\-?=&.]*$/.test(url)) url = '';
+  const label = url ? (String(req.body.label || '').trim().slice(0, 30) || 'Open') : '';
+  const key = 'bc' + Date.now();
+  const all = store.allProfiles();
+  all.forEach(p => store.notify(p.user_id, key, { title, body, label, url }));
+  res.redirect('/admin/broadcast?m=' + encodeURIComponent('Sent to ' + all.length + ' people.'));
 });
 
 app.get('/admin/verify', requireAdmin, (req, res) => {
@@ -380,18 +539,32 @@ app.get('/welcome', requireAuth, (req, res) => {
   const p = myProfile(req.user.id);
   if (!p) return res.redirect('/login');
   if (p.onboarded) return res.redirect('/dashboard');
-  res.render('welcome', { p, CATS, GOALS, SOURCES });
+  const E = { dob: [3, 'Enter your date of birth to continue.'], country: [5, 'Enter your country to continue.'], other: [0, 'Tell us what you do.'] }[req.query.e];
+  res.render('welcome', { p, CATS, GOALS, SOURCES, err: E ? E[1] : '', start: E ? E[0] : 0 });
 });
 
 app.post('/welcome', requireAuth, upload.single('photo'), checkCsrf, (req, res) => {
   const b = req.body;
-  let dob = String(b.dob || '').trim() || null;
-  if (dob) { const a = ageOf(dob); if (isNaN(new Date(dob)) || a === null || a < 13 || a > 120) dob = null; }
+  const redo = (code) => res.redirect('/welcome?e=' + code);
+  const dob = String(b.dob || '').trim();
+  const a = dob ? ageOf(dob) : null;
+  if (!dob || isNaN(new Date(dob)) || a === null || a > 120 || new Date(dob) > new Date()) return redo('dob');
+  if (a < 13) {
+    store.deleteUser(req.user.id);
+    res.clearCookie('cp');
+    return res.render('message', { title: 'You must be 13 or older', text: 'CP Global is for people 13 and over, so this sign-up has been removed.' });
+  }
+  const country = String(b.country || '').trim().slice(0, 56);
+  if (!country) return redo('country');
+  const category = pick(b.category, CATS);
+  const other = String(b.category_other || '').trim().slice(0, 40);
+  if (category === 'Other' && !other) return redo('other');
   store.updateProfile(req.user.id, {
-    country: String(b.country || '').trim().slice(0, 56) || null,
+    country,
     city: String(b.city || '').trim().slice(0, 60) || null,
     show_age: b.show_age === 'on',
-    category: pick(b.category, CATS), goal: pick(b.goal, GOALS), source: pick(b.source, SOURCES),
+    category, category_other: category === 'Other' ? other : '',
+    goal: pick(b.goal, GOALS), source: pick(b.source, SOURCES),
     onboarded: true
   }, dob);
   const type = req.file && sniffImage(req.file.buffer);
@@ -400,25 +573,50 @@ app.post('/welcome', requireAuth, upload.single('photo'), checkCsrf, (req, res) 
   res.redirect('/dashboard');
 });
 
-app.get('/publish', requireAuth, (req, res) => {
+function pubProfile(req, res) {
   const p = myProfile(req.user.id);
-  if (!p) return res.redirect('/login');
-  if (!p.onboarded) return res.redirect('/welcome');
-  res.render('publish', { p, live: isLive(p), open: OPEN_TIERS, CATS, msg: req.query.m || null });
+  if (!p) { res.redirect('/login'); return null; }
+  if (!p.onboarded) { res.redirect('/welcome'); return null; }
+  return p;
+}
+
+app.get('/publish', requireAuth, (req, res) => {
+  const p = pubProfile(req, res);
+  if (p) res.render('publish', { p, live: isLive(p), open: tiersOpen(), plans: false, msg: req.query.m || null });
 });
 
-app.post('/publish', requireAuth, checkCsrf, (req, res) => {
+app.get('/publish/plans', requireAuth, (req, res) => {
+  const p = pubProfile(req, res);
+  if (p) res.render('publish', { p, live: isLive(p), open: tiersOpen(), plans: true, msg: req.query.m || null });
+});
+
+app.get('/publish/:tier', requireAuth, (req, res) => {
+  const p = pubProfile(req, res);
+  if (!p) return;
+  const tier = parseInt(req.params.tier, 10);
+  if ([1, 2, 3].indexOf(tier) < 0) return res.redirect('/publish/plans');
+  res.render('publish-form', { p, tier, open: tiersOpen(), CATS, msg: req.query.m || null, err: req.query.e || null });
+});
+
+app.post('/publish/:tier', requireAuth, checkCsrf, (req, res) => {
   const p = myProfile(req.user.id);
+  if (!p) return res.redirect('/login');
   const b = req.body;
-  const tier = Math.min(3, Math.max(1, parseInt(b.tier, 10) || 1));
+  const tier = Math.min(3, Math.max(1, parseInt(req.params.tier, 10) || 1));
+  const goBack = (m, e) => res.redirect('/publish/' + tier + (e ? '?e=' : '?m=') + encodeURIComponent(m));
+  const bio = String(b.bio || '').trim().slice(0, tier === 1 ? 20 : 150);
+  if (hasLink(bio)) return goBack('Links are not allowed in your bio.', true);
+  const category = pick(b.category, CATS) || p.category;
+  const other = String(b.category_other || '').trim().slice(0, 40);
+  if (category === 'Other' && !other) return goBack('Tell us what you do.', true);
   const f = {
     full_name: String(b.full_name || '').trim().slice(0, 60) || p.full_name,
     country: String(b.country || '').trim().slice(0, 56) || null,
-    category: pick(b.category, CATS) || p.category,
+    category, category_other: category === 'Other' ? other : '',
     show_name: b.show_name === 'on', show_country: b.show_country === 'on',
-    show_photo: b.show_photo === 'on', show_age: b.show_age === 'on'
+    show_photo: b.show_photo === 'on', show_age: b.show_age === 'on',
+    bio
   };
-  if (tier >= 2) f.bio = String(b.bio || '').trim().slice(0, 150);
   if (tier === 3) {
     f.bio_long = String(b.bio_long || '').trim().slice(0, 1000);
     f.achievements = String(b.achievements || '').split('\n').map(x => x.trim().slice(0, 100)).filter(Boolean).slice(0, 6).join('\n');
@@ -427,20 +625,33 @@ app.post('/publish', requireAuth, checkCsrf, (req, res) => {
     f.contact_address = String(b.contact_address || '').trim().slice(0, 200) || null;
     f.show_contact = b.show_contact === 'on';
   }
-  const goBack = (m) => res.redirect('/publish?m=' + encodeURIComponent(m));
-  if (tier > 1 && !OPEN_TIERS) {
+  if (p.suspended) { store.updateProfile(req.user.id, f); return goBack('An administrator has hidden your page.', true); }
+  if (tier > 1 && !tiersOpen()) {
     store.updateProfile(req.user.id, f);
     return goBack('Saved. Paid plans open soon, so this tier cannot go live yet. Choose Tier 1 to go live free now.');
   }
-  if (!isLive(p)) {
-    if (p.trial_used) { store.updateProfile(req.user.id, f); return goBack('Your free trial has ended. Plans open soon.'); }
-    f.status = 'trial'; f.trial_used = true;
-    f.trial_ends_at = new Date(Date.now() + TRIAL_DAYS * 864e5).toISOString();
+  const f2 = Object.assign({}, f, { unpublished: false, tier });
+  if (!isLive(p) && !p.trial_used) {
+    f2.status = 'trial'; f2.trial_used = true;
+    f2.trial_ends_at = new Date(Date.now() + store.settings().trialDays * 864e5).toISOString();
   }
-  f.tier = tier;
-  store.updateProfile(req.user.id, f);
+  if (!isLive(Object.assign({}, p, f2))) { store.updateProfile(req.user.id, f); return goBack('Your free trial has ended. Plans open soon.'); }
+  store.updateProfile(req.user.id, f2);
   store.notify(req.user.id, 'live', { title: 'You are live on Google', body: 'Your page is public. Google can take a few days to show it.', label: 'View my page', url: '/' + p.username });
   res.redirect('/dashboard?m=' + encodeURIComponent('You are live on Google.'));
+});
+
+app.post('/profile/offline', requireAuth, checkCsrf, (req, res) => {
+  store.updateProfile(req.user.id, { unpublished: true });
+  res.redirect('/dashboard?m=' + encodeURIComponent('Your profile is now hidden from Google.'));
+});
+
+app.post('/profile/online', requireAuth, checkCsrf, (req, res) => {
+  const p = myProfile(req.user.id);
+  if (!p) return res.redirect('/login');
+  store.updateProfile(req.user.id, { unpublished: false });
+  if (!isLive(Object.assign({}, p, { unpublished: false }))) return res.redirect('/publish?m=' + encodeURIComponent('Your free trial has ended. Plans open soon.'));
+  res.redirect('/dashboard?m=' + encodeURIComponent('You are live on Google again.'));
 });
 
 app.get('/photo/:username', async (req, res) => {
@@ -462,7 +673,7 @@ app.get('/qr/:username', async (req, res) => {
 });
 
 app.get('/sitemap.xml', async (req, res) => {
-  const urls = [BASE + '/', BASE + '/discover'].concat(store.allProfiles().filter(isLive).map(x => BASE + '/' + x.username));
+  const urls = [BASE + '/', BASE + '/discover', BASE + '/how-it-works', BASE + '/features', BASE + '/plans', BASE + '/faq'].concat(store.allProfiles().filter(isLive).map(x => BASE + '/' + x.username));
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +
     urls.map(u => '<url><loc>' + u + '</loc></url>').join('') + '</urlset>');
 });
@@ -476,28 +687,31 @@ app.get('/:username', async (req, res, next) => {
   if (!USERNAME_RE.test(u)) return next();
   const p = store.profileByUsername(u);
   if (!p) return next();
-  if (!isLive(p)) return res.render('message', { title: 'This page is paused', text: '@' + p.username + ' is not live right now.', noindex: true });
+  const owner = !!(req.user && req.user.id === p.user_id);
+  const preview = !isLive(p);
+  if (preview && !owner) return res.render('message', { title: 'This page is paused', text: '@' + p.username + ' is not live right now.', noindex: true });
   if (!req.user || req.user.id !== p.user_id) store.incr(p.user_id, 'views');
   const showName = p.show_name && p.full_name;
   const name = showName ? p.full_name : '@' + p.username;
   const photoPublic = p.photo_verified && p.show_photo && p.has_photo;
   const age = p.show_age ? ageOf(p.dob) : null;
   const country = p.show_country ? p.country : null;
+  const bio = p.bio ? String(p.bio).slice(0, (p.tier || 1) === 1 ? 20 : 150) : '';
   const ach = p.tier === 3 ? String(p.achievements || '').split('\n').filter(Boolean) : [];
   const ld = { '@context': 'https://schema.org', '@type': 'Person', name, alternateName: '@' + p.username, url: BASE + '/' + p.username };
   if (photoPublic) ld.image = BASE + '/photo/' + p.username;
   if (country) ld.address = { '@type': 'PostalAddress', addressCountry: country };
-  if (p.tier >= 2 && p.bio) ld.description = p.bio;
-  if (p.tier >= 2 && p.category) ld.jobTitle = p.category;
+  if (bio) ld.description = bio;
+  if (p.tier >= 2 && p.category_label) ld.jobTitle = p.category_label;
   if (p.tier === 3 && p.links && p.links.length) ld.sameAs = p.links;
   if (ach.length) ld.award = ach;
   if (p.tier === 3 && p.show_contact && p.public_email) ld.email = p.public_email;
   res.render('profile', {
-    p, name, country, age, photoPublic, ach, verified: p.verify_status === 'verified', vdate: p.verified_at,
+    p, name, country, age, photoPublic, ach, bio, owner, preview, noindex: preview, photoShown: photoPublic || (owner && p.has_photo), verified: p.verify_status === 'verified', vdate: p.verified_at,
     place: country ? [p.city, country].filter(Boolean).join(', ') : '',
     since: p.joined ? new Date(p.joined).getFullYear() : null,
     title: '@' + p.username + (showName ? ' | ' + p.full_name : '') + ' | CP Global',
-    desc: (p.tier >= 2 && p.bio) ? p.bio : name + ' on CP Global' + (country ? ', ' + country : '') + '. Find @' + p.username + ' first.',
+    desc: bio ? bio : name + ' on CP Global' + (country ? ', ' + country : '') + '. Find @' + p.username + ' first.',
     canonical: BASE + '/' + p.username,
     image: photoPublic ? BASE + '/photo/' + p.username : null,
     ld: JSON.stringify(ld).replace(/</g, '\\u003c')
@@ -510,4 +724,7 @@ app.use((err, req, res, next) => {
   res.status(500).render('message', { title: 'Something went wrong', text: 'Try again in a moment.' });
 });
 
-store.ready().then(() => app.listen(PORT, () => console.log('CP Global running on ' + BASE))).catch(e => { console.error(e); process.exit(1); });
+store.ready()
+  .then(async () => { if (ADMIN_EMAIL && process.env.ADMIN_PASSWORD) store.ensureAdmin(ADMIN_EMAIL, await bcrypt.hash(process.env.ADMIN_PASSWORD, 12)); })
+  .then(() => app.listen(PORT, () => console.log('CP Global running on ' + BASE)))
+  .catch(e => { console.error(e); process.exit(1); });

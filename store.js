@@ -17,6 +17,8 @@ fs.mkdirSync(PHOTOS, { recursive: true });
 let db = { seq: 0, users: [], profiles: [], notifications: [] };
 if (fs.existsSync(FILE)) db = JSON.parse(fs.readFileSync(FILE, 'utf8'));
 db.notifications = db.notifications || [];
+const DEFAULTS = { announcement: '', trialDays: 3, openTiers: false, signupsOpen: true };
+db.settings = Object.assign({}, DEFAULTS, db.settings || {});
 const VDIR = path.join(DIR, 'verify');
 fs.mkdirSync(VDIR, { recursive: true });
 
@@ -43,7 +45,7 @@ async function load() {
   await pool.query('create table if not exists kv (k text primary key, v text not null)');
   await pool.query('create table if not exists files (name text primary key, data bytea not null)');
   const r = await pool.query("select v from kv where k='db'");
-  if (r.rowCount) { db = JSON.parse(r.rows[0].v); db.notifications = db.notifications || []; }
+  if (r.rowCount) { db = JSON.parse(r.rows[0].v); db.notifications = db.notifications || []; db.settings = Object.assign({}, DEFAULTS, db.settings || {}); }
   (await pool.query('select name, data from files')).rows.forEach(x => files.set(x.name, x.data));
 }
 
@@ -80,7 +82,7 @@ function secret() {
 function view(p) {
   if (!p) return null;
   const u = db.users.find(x => x.id === p.user_id);
-  return Object.assign({}, p, { dob: u ? u.dob : null, joined: u ? u.created_at : null, has_photo: !!p.photo_type });
+  return Object.assign({}, p, { dob: u ? u.dob : null, joined: u ? u.created_at : null, category_label: p.category === 'Other' && p.category_other ? p.category_other : p.category, has_photo: !!p.photo_type });
 }
 
 function createAccount(a) {
@@ -94,7 +96,7 @@ function createAccount(a) {
   db.profiles.push({
     user_id: id, username: a.username, full_name: a.full_name, country: a.country || null,
     show_name: true, show_country: true, show_age: false, show_photo: true,
-    photo_type: null, photo_verified: false, tier: 1, status: 'draft', onboarded: false, trial_used: false, city: null, category: null, goal: null, source: null,
+    photo_type: null, photo_verified: false, tier: 1, status: 'draft', onboarded: false, trial_used: false, city: null, category: null, category_other: '', unpublished: false, goal: null, source: null,
     views: 0, shares: 0, verify_status: 'none', verified_at: null, verify_note: '', achievements: '', bio: '', bio_long: '', links: [], public_email: null, contact_address: null, show_contact: false,
     trial_ends_at: null, paid_until: null
   });
@@ -111,6 +113,27 @@ function notify(userId, key, n) {
 
 module.exports = {
   notify,
+  settings: () => db.settings,
+  setSettings(o) { Object.assign(db.settings, o); save(); },
+  allUsers: () => db.users.map(u => Object.assign({}, view(db.profiles.find(p => p.user_id === u.id)), { email: u.email, created_at: u.created_at })),
+  deleteUser(id) {
+    db.users = db.users.filter(u => u.id !== id);
+    db.profiles = db.profiles.filter(p => p.user_id !== id);
+    db.notifications = db.notifications.filter(n => n.user_id !== id);
+    delFile('photos/' + id);
+    [1, 2].forEach(n => delFile('verify/' + id + '-' + n + '.jpg'));
+    save();
+  },
+  ensureAdmin(email, hash) {
+    const u = db.users.find(x => x.email === email);
+    if (u) { u.password_hash = hash; save(); return u.id; }
+    let name = 'cpadmin', k = 0;
+    while (db.profiles.some(p => p.username === name)) name = 'cpadmin' + (++k);
+    const id = createAccount({ email, hash, username: name, full_name: 'CP Global Admin', country: '', trialDays: 3 });
+    db.profiles.find(x => x.user_id === id).onboarded = true;
+    save();
+    return id;
+  },
   notifications: id => db.notifications.filter(x => x.user_id === id).map(x => Object.assign({}, x)).sort((a, b) => b.at.localeCompare(a.at)),
   unread: id => db.notifications.filter(x => x.user_id === id && !x.read).length,
   markRead(id) { db.notifications.forEach(x => { if (x.user_id === id) x.read = true; }); saveSoon(); },

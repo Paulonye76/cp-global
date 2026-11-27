@@ -1,7 +1,7 @@
 <%- include('head', { title: 'Verify your profile | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
 <% var vs = p.verify_status || 'none'; %>
 <section class="dash">
-  <div class="hello"><h1>Verify your <span class="g">profile</span></h1><p>Prove it is really you.</p></div>
+  <div class="hello"><h1>Verify your <span class="g">profile</span></h1><p>Prove it is really you. <a href="/how-it-works#face">How does this work?</a></p></div>
   <% if (vs === 'verified') { %>
     <div class="card2 vdone"><svg class="vb huge"><use href="#i-seal"/></svg><h3>You are verified</h3><p class="hint"><%= p.verified_at ? 'Verified on ' + new Date(p.verified_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '.' : '' %> Your badge shows on your page and your photo can appear on Google.</p><a class="btn" href="/<%= p.username %>">View my page</a></div>
   <% } else if (vs === 'pending') { %>
@@ -12,22 +12,25 @@
     <% if (vs === 'rejected') { %><p class="err">Last attempt did not pass. <%= p.verify_note || '' %></p><% } %>
     <div class="card2 vcam" data-verify data-csrf="<%= csrf %>" data-prompt="<%= prompt %>">
       <div class="vp1">
-        <h3>How it works</h3>
-        <ul class="cl"><li class="ok1"><svg class="i"><use href="#i-check"/></svg>Take two quick selfies with your camera</li><li class="ok1"><svg class="i"><use href="#i-check"/></svg>We compare them with your profile photo</li><li class="ok1"><svg class="i"><use href="#i-check"/></svg>Your selfies are deleted once we decide</li></ul>
+        <h3>Before you start</h3>
+        <ul class="cl"><li class="ok1"><svg class="i"><use href="#i-check"/></svg>Find good light and face it</li><li class="ok1"><svg class="i"><use href="#i-check"/></svg>The screen guides you and says Good when you are in the right spot</li><li class="ok1"><svg class="i"><use href="#i-check"/></svg>Two photos are taken for you, then you submit</li><li class="ok1"><svg class="i"><use href="#i-check"/></svg>Your selfies are deleted once we decide</li></ul>
         <button type="button" class="btn big" data-start>Start camera</button>
       </div>
       <div class="vp2" hidden>
-        <div class="cam"><video playsinline muted autoplay></video></div>
-        <p class="vq"></p>
-        <button type="button" class="btn big" data-snap>Take photo</button>
+        <div class="vsteps"><span data-s1 class="on">1 Face the camera</span><span data-s2>2 One small move</span></div>
+        <div class="camwrap" data-ring><div class="cam"><video playsinline muted autoplay></video></div><div class="arr" data-arrow hidden><svg class="i"><use href="#i-back"/></svg></div></div>
+        <p class="vcoach" data-coach>Starting camera...</p>
+        <button type="button" class="btn ghost" data-manual hidden>Take photo</button>
       </div>
       <div class="vp3" hidden>
+        <h3>Looking good</h3>
         <div class="shots"><img alt="First selfie"><img alt="Second selfie"></div>
         <button type="button" class="btn big" data-send>Submit for review</button>
         <button type="button" class="btn ghost big" data-retake>Retake</button>
       </div>
       <p class="vmsg" role="status"></p>
     </div>
+    <script src="/verify.js?v=<%= v %>"></script>
   <% } %>
 </section>
 <%- include('foot') %>

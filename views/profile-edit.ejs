@@ -1,28 +1,68 @@
-<%- include('head', { title: 'My profile | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
-<section class="dash">
-  <div class="hello"><h1>My profile</h1><p>Your details and what shows on Google.</p></div>
+<%- include('head', { title: 'Edit profile | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
+<% var url = base + '/' + p.username; var vs = p.verify_status || 'none';
+   var dobv = p.dob ? new Date(p.dob).toISOString().slice(0, 10) : '';
+   var rows = [
+     ['bio', 'Bio', 'textarea', (p.tier || 1) === 1 ? 20 : 150, p.bio || '', '20 characters on Tier 1, 150 on Tier 2 and 3. No links.'],
+     ['links', 'Links', 'textarea', 600, (p.links || []).join('\n'), 'One link per line, up to 3. Shown on Tier 3.'],
+     ['country', 'Country', 'text', 56, p.country || '', ''],
+     ['city', 'City', 'text', 60, p.city || '', ''],
+     ['category', 'What you do', 'select', 0, p.category || '', '', p.category_label || ''],
+     ['dob', 'Date of birth', 'date', 0, dobv, 'Never shown. Used for your age.']
+   ]; %>
+<section class="edit" data-csrf="<%= csrf %>">
+  <h1 class="et">Edit profile</h1>
   <% if (msg) { %><p class="ok"><%= msg %></p><% } %>
-  <% if (error) { %><p class="err"><%= error %></p><% } %>
-  <form method="post" action="/dashboard" class="sws">
-    <input type="hidden" name="csrf" value="<%= csrf %>">
-    <div class="card2 form"><div class="sh"><svg class="i"><use href="#i-user"/></svg><div><h3>Personal information</h3><p>Who you are.</p></div></div>
-      <label>Full name<input name="full_name" maxlength="60" required value="<%= p.full_name %>"></label>
-      <label class="check"><input type="checkbox" name="show_name" <%= p.show_name ? 'checked' : '' %>> Show my name on Google</label>
-      <label>Country<input name="country" maxlength="56" value="<%= p.country || '' %>"></label>
-      <label class="check"><input type="checkbox" name="show_country" <%= p.show_country ? 'checked' : '' %>> Show my country on Google</label>
-      <label>Date of birth (never shown)<input type="date" name="dob" value="<%= p.dob ? new Date(p.dob).toISOString().slice(0, 10) : '' %>"></label>
-      <label class="check"><input type="checkbox" name="show_age" <%= p.show_age ? 'checked' : '' %>> Show my age on Google</label>
-      <label class="check"><input type="checkbox" name="show_photo" <%= p.show_photo ? 'checked' : '' %>> Show my photo on Google</label>
-      <button class="btn">Save changes</button>
+  <% if (locals.error && error) { %><p class="err"><%= error %></p><% } %>
+
+  <div class="eph">
+    <div class="phw">
+      <% if (p.has_photo) { %><img class="ephi" src="/photo/<%= p.username %>" alt="Your photo"><% } else { %><svg class="av ephi" style="--a1:#d9f5e1;--a2:#0b6b2c"><use href="#av"/></svg><% } %>
+      <button type="button" class="camb" data-photo-warn aria-label="Change photo"><svg class="i"><use href="#i-cam"/></svg></button>
     </div>
-  </form>
-  <div class="card2"><div class="sh"><svg class="i"><use href="#i-eye"/></svg><div><h3>Profile photograph</h3><p>A clear photo of your face.</p></div></div>
-    <% if (p.has_photo) { %><img class="avatar big2" src="/photo/<%= p.username %>" alt="Your photo">
-      <p class="hint"><%= p.verify_status === 'verified' ? 'Verified.' : 'Not verified yet. It stays off Google until you verify.' %> <% if (p.verify_status !== 'verified') { %><a href="/verify">Verify now</a><% } %></p><% } %>
-    <form method="post" action="/dashboard/photo" enctype="multipart/form-data" class="form">
-      <input type="hidden" name="csrf" value="<%= csrf %>">
-      <label>Upload a new photo<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label>
-      <button class="btn alt">Upload photo</button>
-    </form></div>
+    <button type="button" class="tl" data-photo-warn>Change photo</button>
+    <form id="photoForm" method="post" action="/dashboard/photo" enctype="multipart/form-data" hidden>
+      <input type="hidden" name="csrf" value="<%= csrf %>"><input type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-photo-file>
+    </form>
+  </div>
+
+  <div class="rows">
+    <button type="button" class="row" data-edit="full_name" data-label="Name" data-type="text" data-max="60" data-value="<%= p.full_name %>"><span>Name</span><b><%= p.full_name %></b><svg class="i"><use href="#i-chev"/></svg></button>
+    <button type="button" class="row" data-edit="username" data-label="Username" data-type="text" data-max="20" data-value="<%= p.username %>" data-hint="You can change your username twice. After that, once every 30 days. Your old link and QR code stop working." <% if (locals.unlock) { %>data-locked="You can change your username again on <%= unlock %>."<% } %>><span>Username</span><b><%= p.username %></b><svg class="i"><use href="#i-chev"/></svg></button>
+    <div class="row static"><span></span><b><%= url.replace(/^https?:\/\//, '') %></b><button type="button" class="cp" data-copy="<%= url %>" aria-label="Copy link"><svg class="i"><use href="#i-copy"/></svg></button></div>
+  </div>
+
+  <p class="sec-l">Basic info</p>
+  <div class="rows">
+    <% rows.forEach(function (r) { %>
+    <button type="button" class="row" data-edit="<%= r[0] %>" data-label="<%= r[1] %>" data-type="<%= r[2] %>" data-max="<%= r[3] %>" data-value="<%= r[4] %>" data-hint="<%= r[5] %>" data-other="<%= r[0] === 'category' ? (p.category_other || '') : '' %>"<% if (r[2] === 'select') { %> data-options='<%= JSON.stringify(CATS) %>'<% } %>><span><%= r[1] %></span><% var dv = r[6] || r[4]; %><b class="<%= dv ? '' : 'mut' %>"><%= dv ? dv.split('\n')[0].slice(0, 28) : 'Add' %></b><svg class="i"><use href="#i-chev"/></svg></button>
+    <% }) %>
+  </div>
+
+  <p class="sec-l">Visibility on Google</p>
+  <div class="rows">
+    <% [['show_name', 'Show my name'], ['show_country', 'Show my country'], ['show_age', 'Show my age'], ['show_photo', 'Show my photo']].forEach(function (t) { %>
+    <label class="row sw2"><span><%= t[1] %></span><input type="checkbox" data-toggle="<%= t[0] %>" <%= p[t[0]] ? 'checked' : '' %>><i></i></label>
+    <% }) %>
+  </div>
+
+  <p class="sec-l">Verification</p>
+  <div class="rows"><a class="row" href="/verify"><span>Face verification</span><b class="<%= vs === 'verified' ? 'okt' : 'mut' %>"><%= vs === 'verified' ? 'Verified' : (vs === 'pending' ? 'Under review' : 'Not verified') %></b><svg class="i"><use href="#i-chev"/></svg></a></div>
 </section>
+
+<div class="sheet-scrim" data-sheet-scrim></div>
+<div class="sheet" data-sheet>
+  <form method="post" action="/dashboard/field">
+    <input type="hidden" name="csrf" value="<%= csrf %>"><input type="hidden" name="field">
+    <h3 data-st></h3>
+    <div data-sf></div>
+    <p class="hint" data-sh></p>
+    <button class="btn big" data-save>Save</button>
+    <button type="button" class="btn ghost big" data-sheet-close>Cancel</button>
+  </form>
+</div>
+
+<div class="modal" data-pmodal hidden>
+  <div class="mc"><h3>Face verification needed</h3><p>A new photo has to be verified with a quick face check before it can show on Google. Until you verify, your new photo stays hidden.</p>
+    <div class="mb"><button type="button" data-pm-cancel>Cancel</button><button type="button" data-pm-ok>Choose photo</button></div></div>
+</div>
 <%- include('foot') %>

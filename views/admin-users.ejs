@@ -1,0 +1,24 @@
+<%- include('head', { title: 'Users | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
+<section class="dash adm">
+  <div class="hello"><h1>Users</h1><p>Manage accounts and pages.</p></div>
+  <%- include('admin-nav', { tab: 'u' }) %>
+  <form class="dsearch" method="get" action="/admin/users"><div class="field big"><svg class="i"><use href="#i-search"/></svg><input name="q" value="<%= q %>" placeholder="Username, email or name"></div></form>
+  <% if (!list.length) { %><div class="card2 empty"><h3>No users found</h3></div><% } %>
+  <% list.forEach(function (u) { var isAdmin = u.email === ADMIN_EMAIL; %>
+  <div class="card2 ucard">
+    <div class="uh"><div><b>@<%= u.username %></b><% if (u.verify_status === 'verified') { %><svg class="vb"><use href="#i-seal"/></svg><% } %><small><%= u.email %></small></div>
+      <span class="chip <%= u.suspended ? 'bad' : (live(u) ? 'ok' : '') %>"><%= u.suspended ? 'Hidden' : (live(u) ? 'Live' : (u.trial_used ? 'Paused' : 'Draft')) %></span></div>
+    <p class="hint"><%= u.full_name %> | Tier <%= u.tier || 1 %> | <%= u.views || 0 %> views | <%= u.verify_status || 'none' %> | joined <%= new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) %><%= u.featured ? ' | featured' : '' %></p>
+    <% if (!isAdmin) { %>
+    <form method="post" action="/admin/users/<%= u.user_id %>" class="uact">
+      <input type="hidden" name="csrf" value="<%= csrf %>"><input type="hidden" name="q" value="<%= q %>">
+      <button name="action" value="<%= u.suspended ? 'unsuspend' : 'suspend' %>"><%= u.suspended ? 'Show page' : 'Hide page' %></button>
+      <button name="action" value="<%= u.featured ? 'unfeature' : 'feature' %>"><%= u.featured ? 'Unfeature' : 'Feature' %></button>
+      <button name="action" value="<%= u.verify_status === 'verified' ? 'unverify' : 'verify' %>"><%= u.verify_status === 'verified' ? 'Remove badge' : 'Verify' %></button>
+      <button name="action" value="delete" class="dng" data-confirm="Delete @<%= u.username %> and all their data? This cannot be undone.">Delete</button>
+    </form>
+    <% } else { %><p class="hint">This is your admin account.</p><% } %>
+  </div>
+  <% }) %>
+</section>
+<%- include('foot') %>

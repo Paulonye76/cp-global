@@ -1,0 +1,30 @@
+<%- include('head', { title: 'Admin | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
+<% var mx = Math.max.apply(null, s.days.map(function (d) { return d.n; }).concat([1]));
+   var fm = Math.max(s.funnel[0][1], 1);
+   function hbars(list) { var m = Math.max.apply(null, list.map(function (x) { return x[1]; }).concat([1])); return list.map(function (x) { return '<div class="hb2"><span>' + x[0].replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span><i style="width:' + Math.round(x[1] / m * 45) + '%"></i><b>' + x[1] + '</b></div>'; }).join('') || '<p class="hint">No data yet.</p>'; } %>
+<section class="dash adm">
+  <div class="hello"><h1>Admin console</h1><p>How CP Global is doing.</p></div>
+  <%- include('admin-nav', { tab: 'o' }) %>
+  <div class="kpis">
+    <div class="kpi"><b><%= s.total %></b><span>Users</span></div>
+    <div class="kpi"><b><%= s.live %></b><span>Live profiles</span></div>
+    <div class="kpi"><b><%= s.verified %></b><span>Verified</span></div>
+    <a class="kpi" href="/admin/verify"><b><%= s.pending %></b><span>To review</span></a>
+    <div class="kpi"><b><%= s.views %></b><span>Page views</span></div>
+    <div class="kpi"><b><%= s.shares %></b><span>Shares</span></div>
+  </div>
+  <div class="card2"><h3>Sign-ups, last 7 days</h3>
+    <div class="bars"><% s.days.forEach(function (d) { %><div class="bar1"><b><%= d.n %></b><i style="height:<%= Math.round(d.n / mx * 100) %>%"></i><small><%= d.l %></small></div><% }) %></div></div>
+  <div class="card2"><h3>Funnel</h3>
+    <% s.funnel.forEach(function (f) { %><div class="hb2"><span><%= f[0] %></span><i style="width:<%= Math.round(f[1] / fm * 45) %>%"></i><b><%= f[1] %></b></div><% }) %></div>
+  <div class="g2">
+    <div class="card2"><h3>How people heard about us</h3><%- hbars(s.sources) %></div>
+    <div class="card2"><h3>Professions</h3><%- hbars(s.cats) %></div>
+    <div class="card2"><h3>Top countries</h3><%- hbars(s.countries) %></div>
+    <div class="card2"><h3>Live plans</h3><%- hbars(s.tiers) %></div>
+  </div>
+  <div class="card2"><h3>Most viewed profiles</h3>
+    <% if (!s.top.length) { %><p class="hint">No views yet.</p><% } %>
+    <% s.top.forEach(function (t) { %><div class="hb2"><a href="/<%= t.username %>">@<%= t.username %></a><i style="width:0"></i><b><%= t.views %></b></div><% }) %></div>
+</section>
+<%- include('foot') %>

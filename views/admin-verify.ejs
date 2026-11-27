@@ -1,11 +1,12 @@
 <%- include('head', { title: 'Review verifications | CP Global', noindex: true, page: 'app', back: '/dashboard', strict: true }) %>
 <section class="dash">
   <div class="hello"><h1>Verification requests</h1><p>Compare the selfies with the profile photo.</p></div>
+  <%- include('admin-nav', { tab: 'v' }) %>
   <% if (!list.length) { %><div class="card2 empty"><h3>No pending requests</h3></div><% } %>
   <% list.forEach(function (x) { %>
   <div class="card2">
     <h3>@<%= x.username %> <small class="hint"><%= x.full_name %></small></h3>
-    <p class="hint">Prompt: <%= x.verify_prompt || 'none' %></p>
+    <p class="hint">Asked to: <%= ({ left: 'turn head to their left', right: 'turn head to their right', smile: 'smile' })[x.verify_prompt] || x.verify_prompt || 'none' %></p>
     <div class="shots three"><img src="/admin/verify/img/<%= x.user_id %>/photo" alt="Profile photo"><img src="/admin/verify/img/<%= x.user_id %>/1" alt="Selfie 1"><img src="/admin/verify/img/<%= x.user_id %>/2" alt="Selfie 2"></div>
     <form method="post" action="/admin/verify/<%= x.user_id %>" class="form">
       <input type="hidden" name="csrf" value="<%= csrf %>">
